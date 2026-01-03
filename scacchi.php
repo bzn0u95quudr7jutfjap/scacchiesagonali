@@ -115,6 +115,51 @@ if('cli-server' !== $api){
       return celle;
     }
 
+    function isCellaCoprenteInPos(cella,x,y) {
+      const TODO = 0;
+      if(TODO){
+      const rad3 = Math.sqrt(3);
+
+      const y1 = cella.y;
+      const y2 = cella.y + 2 * latoEsagonoCos;
+      const centroY = y1 <= y && y <= y2;
+
+      const xEsagonoSinistra = cella.x + (latoEsagono * 1/2);
+      const yEsagonoSinistra = cella.y + (latoEsagono * (-(rad3 / 2)));
+
+      const xEsagonoDestra = cella.x + (latoEsagono * (1/2 - 1));
+      const yEsagonoDestra = cella.y + (latoEsagono * (rad3 / 2));
+
+      const ydb = (-rad3 * x) - (-rad3 * xdbaa - ydbaa);
+      const yda = (-rad3 * x) - (-rad3 * xdaab - ydaab);
+      const centroYd = ydb <= y && y <= yda;
+
+      const yab = (rad3 * x) + (rad3 * xdaab - ydbdaabaa);
+      const yaa = (rad3 * x) + (rad3 * xdbaa - ydbdaabaa);
+      const centroYa = yab <= y && y <= yaa;
+
+      console.log('y  :',y1,'<=',y,'<=',y2);
+      console.log('yd :',ydb,'<=',y,'<=',yda);
+      console.log('ya :',yab,'<=',y,'<=',yaa);
+
+      return (centroY && centroYd && centroYa);
+      }else{
+        return cella.x < x && x < (cella.x + latoEsagono) && cella.y < y && y < (cella.y + 2 * latoEsagonoCos);
+      }
+    }
+
+c.addEventListener('mousedown', function(e) {
+    const rect = this.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    var cella = celle.filter(o => isCellaCoprenteInPos(o,x,y));
+    if (1 == cella.length) {
+      drawScacchiera(ctx);
+      cella = cella[0];
+      selectCellaEsagono(ctx,cella);
+    }
+})
+
     const ctx = c.getContext("2d");
     const latoCanvas = window.innerHeight - 24;
     c.height = latoCanvas;
@@ -125,20 +170,6 @@ if('cli-server' !== $api){
     const celle = drawScacchiera(ctx);
 
     console.log(celle);
-
-c.addEventListener('mousedown', function(e) {
-    const rect = this.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    //const celle = drawScacchiera(ctx);
-    var cella = celle.filter(o => o.x <= x && x <= (o.x + latoEsagono) && o.y <= y && y <= (o.y + 2 * latoEsagonoCos));
-    if (1 == cella.length) {
-      drawScacchiera(ctx);
-      cella = cella[0];
-      selectCellaEsagono(ctx,cella);
-    }
-})
-
 
 
     </script>
