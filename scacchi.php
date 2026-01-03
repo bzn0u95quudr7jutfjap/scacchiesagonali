@@ -43,7 +43,65 @@ if('cli-server' !== $api){
     const latoEsagonoSin = latoEsagono * 1/2;
     const latoEsagonoCos = latoEsagono * Math.sqrt(3)/2;
 
-    var selettoreColore = 0;
+    const ctx = c.getContext("2d");
+    const latoCanvas = window.innerHeight - 24;
+    c.height = latoCanvas;
+    c.width  = latoCanvas;
+    c.style.width  = latoCanvas + 'px';
+    c.style.height = latoCanvas + 'px';
+
+    const celle = drawScacchiera(ctx);
+
+    console.log(celle);
+
+    const pezzi =
+    { bianchi:
+      [ { nome: 'A', i: 5, j:10 }
+      , { nome: 'A', i: 5, j: 9 }
+      , { nome: 'A', i: 5, j: 8 }
+      , { nome: 'P', i: 1, j:10 }
+      , { nome: 'P', i: 2, j: 9 }
+      , { nome: 'P', i: 3, j: 8 }
+      , { nome: 'P', i: 4, j: 7 }
+      , { nome: 'P', i: 5, j: 6 }
+      , { nome: 'P', i: 6, j: 6 }
+      , { nome: 'P', i: 7, j: 6 }
+      , { nome: 'P', i: 8, j: 6 }
+      , { nome: 'P', i: 9, j: 6 }
+      , { nome: 'T', i: 2, j:10 }
+      , { nome: 'T', i: 8, j: 7 }
+      , { nome: 'C', i: 3, j:10 }
+      , { nome: 'C', i: 7, j: 8 }
+      , { nome: 'D', i: 4, j:10 }
+      , { nome: 'R', i: 6, j: 9 }
+      ]
+    , neri:
+      [ { nome: 'P', i: 1, j: 4 }
+      , { nome: 'P', i: 2, j: 4 }
+      , { nome: 'P', i: 3, j: 4 }
+      , { nome: 'P', i: 4, j: 4 }
+      , { nome: 'P', i: 5, j: 4 }
+      , { nome: 'P', i: 6, j: 3 }
+      , { nome: 'P', i: 7, j: 2 }
+      , { nome: 'P', i: 8, j: 1 }
+      , { nome: 'P', i: 9, j: 0 }
+      , { nome: 'A', i: 5, j: 0 }
+      , { nome: 'A', i: 5, j: 1 }
+      , { nome: 'A', i: 5, j: 2 }
+      , { nome: 'T', i: 2, j: 3 }
+      , { nome: 'T', i: 8, j: 0 }
+      , { nome: 'C', i: 3, j: 2 }
+      , { nome: 'C', i: 7, j: 0 }
+      , { nome: 'D', i: 4, j: 1 }
+      , { nome: 'R', i: 6, j: 0 }
+      ]
+    };
+
+    function posByIdx(i,j){
+      const x = xpad + ((latoEsagono + latoEsagonoSin) * i) + 0;
+      const y = ypad + (latoEsagonoCos * 2 * j) + (latoEsagonoCos * i);
+      return [x,y];
+    }
 
     function verticiEsagono(x,y){
       const vertici = 
@@ -71,8 +129,7 @@ if('cli-server' !== $api){
     }
 
     function drawCellaEsagonoByIdx(ctx,i,j){
-      var x = xpad + ((latoEsagono + latoEsagonoSin) * i) + 0;
-      var y = ypad + (latoEsagonoCos * 2 * j) + (latoEsagonoCos * i);
+      const [x,y] = posByIdx(i,j);
       ctx.beginPath();
       ctx.moveTo(x,y); 
       ctx.lineWidth = 1;
@@ -154,22 +211,47 @@ c.addEventListener('mousedown', function(e) {
     const y = event.clientY - rect.top;
     var cella = celle.filter(o => isCellaCoprenteInPos(o,x,y));
     if (1 == cella.length) {
-      drawScacchiera(ctx);
       cella = cella[0];
+      console.log('cella',cella);
+      drawScacchiera(ctx);
+      drawPezzi(ctx,celle,pezzi);
       selectCellaEsagono(ctx,cella);
     }
 })
 
-    const ctx = c.getContext("2d");
-    const latoCanvas = window.innerHeight - 24;
-    c.height = latoCanvas;
-    c.width  = latoCanvas;
-    c.style.width  = latoCanvas + 'px';
-    c.style.height = latoCanvas + 'px';
 
-    const celle = drawScacchiera(ctx);
+    function drawPezzi(ctx,pezzi){
+      const dimensioneTesto = (latoEsagonoCos * 2);
+      const allineamentoX = 0;
+      const allineamentoY = -8;
+    var deathcounter = 0;
+      function disegnaPezzo(pezzo){
+        const i = pezzo.i;
+        const j = pezzo.j;
+        const [x,y] = posByIdx(i,j);
+        ctx.fillText  (pezzo.nome, x + allineamentoX, y + dimensioneTesto + allineamentoY);
+        ctx.strokeText(pezzo.nome, x + allineamentoX, y + dimensioneTesto + allineamentoY);
+        ctx.fill();
+        ctx.stroke();
+    if(0 > --deathcounter){
+        console.log(pezzo,x,y);
+        throw deathcounter;
+    }
+      }
 
-    console.log(celle);
+      ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
 
+      ctx.fillStyle   = 'white';
+      ctx.strokeStyle = 'black';
+      pezzi.bianchi.forEach(disegnaPezzo);
+
+      ctx.fillStyle   = 'black';
+      ctx.strokeStyle = 'white';
+      pezzi.neri.forEach(disegnaPezzo);
+
+    }
+
+    drawScacchiera(ctx);
+    drawPezzi(ctx,pezzi);
 
     </script>
