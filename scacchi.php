@@ -12,6 +12,49 @@ if('cli-server' !== $api){
       die();
 };
 
+if(!session_start()){
+  die('ERRORE CREAZIONE DELLA SESSIONE');
+}
+
+if(!array_key_exists('method',$_GET)){
+  $a_partite = 'partite';
+  $a_partite = $_SESSION[$a_partite];
+  $a_partite = array_keys($a_partite);
+  $a_partite = array_map(fn($a)=> "<li><a href='?method=partita&partita=$a'>$a</a></li>",$a_partite);
+  $a_partite = implode('',$a_partite);
+  $html = <<<eof
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <style>
+      </style>
+    </head>
+    <body>
+      <a href='?method=nuova_partita'>Crea una nuova partita</a>
+      <h1> Partite attive </h1>
+      <o> {$a_partite} </o>
+    </body>
+  </html>
+  eof;
+  echo $html;
+  die();
+}
+
+$method = 'method';
+$method = $_GET[$method];
+switch($method){
+case 'nuova_partita': {
+    $partite_k = 'partite';
+    if(!array_key_exists($partite_k,$_SESSION)) {
+      $_SESSION[$partite_k] = [];
+    }
+    $nuova_partita = range(0,3);
+    $nuova_partita = array_map(fn()=>sprintf('%02x',rand() % 256),$nuova_partita);
+    $nuova_partita = implode('',$nuova_partita);
+    $_SESSION[$partite_k][$nuova_partita] = [];
+    header('Location: ?');
+  } break;
+case 'partita': {
 ?>
 <!DOCTYPE html>
 <html>
@@ -36,13 +79,13 @@ if('cli-server' !== $api){
     <pre id='data'></pre>
     <script>
 
+    const g = function init(){
     const latoCanvas = window.innerHeight - 24;
     c.height = latoCanvas;
     c.width  = latoCanvas;
     c.style.width  = latoCanvas + 'px';
     c.style.height = latoCanvas + 'px';
 
-    const g = function init(){
       var g = {};
       g.debug = 1;
       g.c    = c;
@@ -230,14 +273,13 @@ c.addEventListener('mousedown', function(e) {
 
       g.ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
 
-      g.ctx.fillStyle   = 'white';
-      g.ctx.strokeStyle = 'black';
+      g.ctx.fillStyle   = '#cccccc';
+      g.ctx.strokeStyle = '#444444';
       g.pezzi.bianchi.forEach(disegnaPezzo);
 
-      g.ctx.fillStyle   = 'black';
-      g.ctx.strokeStyle = 'white';
+      g.ctx.fillStyle   = '#444444';
+      g.ctx.strokeStyle = '#cccccc';
       g.pezzi.neri.forEach(disegnaPezzo);
-     
 
       g.ctx.fillStyle   = '';
 
@@ -247,3 +289,8 @@ c.addEventListener('mousedown', function(e) {
     drawPezzi();
 
     </script>
+<?php
+
+  } break;
+}
+
