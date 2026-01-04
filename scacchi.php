@@ -51,15 +51,44 @@ $method = 'method';
 $method = $_GET[$method];
 switch($method){
 case 'nuova_partita': {
-    $condizioni_iniziali =
-    'A,B,05,10,05,10 A,B,05,09,05,09 A,B,05,08,05,08 P,B,01,10,01,10 P,B,02,09,02,09 ' .
-    'P,B,03,08,03,08 P,B,04,07,04,07 P,B,05,06,05,06 P,B,06,06,06,06 P,B,07,06,07,06 ' .
-    'P,B,08,06,08,06 P,B,09,06,09,06 T,B,02,10,02,10 T,B,08,07,08,07 C,B,03,10,03,10 ' .
-    'C,B,07,08,07,08 D,B,04,10,04,10 R,B,06,09,06,09 P,N,01,04,01,04 P,N,02,04,02,04 ' .
-    'P,N,03,04,03,04 P,N,04,04,04,04 P,N,05,04,05,04 P,N,06,03,06,03 P,N,07,02,07,02 ' .
-    'P,N,08,01,08,01 P,N,09,00,09,00 A,N,05,00,05,00 A,N,05,01,05,01 A,N,05,02,05,02 ' .
-    'T,N,02,03,02,03 T,N,08,00,08,00 C,N,03,02,03,02 C,N,07,00,07,00 D,N,04,01,04,01 ' .
-    'R,N,06,00,06,00';
+    $condizioni_iniziali = <<<eof
+      A,B,05,10,05,10
+      A,B,05,09,05,09
+      A,B,05,08,05,08
+      P,B,01,10,01,10
+      P,B,02,09,02,09
+      P,B,03,08,03,08
+      P,B,04,07,04,07
+      P,B,05,06,05,06
+      P,B,06,06,06,06
+      P,B,07,06,07,06
+      P,B,08,06,08,06
+      P,B,09,06,09,06
+      T,B,02,10,02,10
+      T,B,08,07,08,07
+      C,B,03,10,03,10
+      C,B,07,08,07,08
+      D,B,04,10,04,10
+      R,B,06,09,06,09
+      P,N,01,04,01,04
+      P,N,02,04,02,04
+      P,N,03,04,03,04
+      P,N,04,04,04,04
+      P,N,05,04,05,04
+      P,N,06,03,06,03
+      P,N,07,02,07,02
+      P,N,08,01,08,01
+      P,N,09,00,09,00
+      A,N,05,00,05,00
+      A,N,05,01,05,01
+      A,N,05,02,05,02
+      T,N,02,03,02,03
+      T,N,08,00,08,00
+      C,N,03,02,03,02
+      C,N,07,00,07,00
+      D,N,04,01,04,01
+      R,N,06,00,06,00
+      eof;
     $condizioni_iniziali = str_replace(' ',"\n",$condizioni_iniziali);
     $nuova_partita = '*';
     $nuova_partita = glob($nuova_partita);
@@ -106,6 +135,9 @@ case 'partita': {
         border: solid 1px black;
         width:  98%;
         height: 98%;
+      }
+      select {
+        display: block;
       }
     </style>
   </head>
@@ -211,17 +243,55 @@ case 'partita': {
       if(g.giocatore.value != pezzo.colore){
         return;
       }
+      
+      function coloraBordoEsagono(i,j,colore){
+        const v = verticiEsagono(i,j);
+        g.ctx.lineWidth = 6;
+        g.ctx.strokeStyle = colore;
+        g.ctx.beginPath();
+        g.ctx.moveTo(v[0].x,v[0].y); 
+        v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
+        g.ctx.closePath();
+        g.ctx.stroke();
+      }
+    
+      coloraBordoEsagono(i,j,'#6688ccff');
 
-      const v = verticiEsagono(i,j);
+      switch (pezzo.nome) {
+        case 'P': {
+          const posizioniInizialiPedone =
+            { 'B' :
+              { "1" : 10
+              , "2" :  9
+              , "3" :  8
+              , "4" :  7
+              , "5" :  6
+              , "6" :  6
+              , "7" :  6
+              , "8" :  6
+              , "9" :  6
+              }
+            , 'N' :
+              { "1" : 4
+              , "2" : 4
+              , "3" : 4
+              , "4" : 4
+              , "5" : 4
+              , "6" : 3
+              , "7" : 2
+              , "8" : 1
+              , "9" : 0
+              }
+            };
+          const posizioniIniziali = posizioniInizialiPedone[pezzo.colore];
+          if (i in posizioniIniziali && j == posizioniIniziali[i]) {
+            coloraBordoEsagono(i,j-2,'#6688ccff');
+          }
+          coloraBordoEsagono(i,j-1,'#6688ccff');
 
-      g.ctx.lineWidth = 6;
-      g.ctx.strokeStyle = '#6688ccff';
+        } break;
+      }
 
-      g.ctx.beginPath();
-      g.ctx.moveTo(v[0].x,v[0].y); 
-      v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
-      g.ctx.closePath();
-      g.ctx.stroke();
     }
 
     function drawCellaEsagonoByIdx(i,j){
