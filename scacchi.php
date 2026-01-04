@@ -49,7 +49,7 @@ if('cli-server' !== $api){
       g.ctx  = c.getContext("2d");
       g.xpad =  60;
       g.ypad = -60;
-      g.latoEsagono    = 40;
+      g.latoEsagono    = 20;
       g.latoEsagonoSin = g.latoEsagono * 1/2;
       g.latoEsagonoCos = g.latoEsagono * Math.sqrt(3)/2;
       g.pezzi =
@@ -104,114 +104,11 @@ if('cli-server' !== $api){
     }
 
     function idxByPos(x,y){
-      const lineWidth   = g.ctx.lineWidth;
-      const strokeStyle = g.ctx.strokeStyle;
-      if(1){
-        g.ctx.lineWidth   = 1;
-
-        if(1){
-        // costante
-        g.ctx.strokeStyle = '#ff0000';
-        g.ctx.beginPath();
-        g.ctx.moveTo(        0,y);
-        g.ctx.lineTo(g.c.width,y);
-        //g.ctx.stroke();
-
-        const larghezzaEsagono  = g.latoEsagonoSin + g.latoEsagono;
-        const altezzaEsagono    = 2 * g.latoEsagonoCos;
-        var x0 = x - g.xpad;
-        x0 = x0 - (x0 % larghezzaEsagono);
-        x0 = x0 / larghezzaEsagono;
-        var y0 = y - g.ypad - ((x0 % 2) * g.latoEsagonoCos);
-        const y1 = (y0 - (y0 % altezzaEsagono)) + ((x0 % 2) * g.latoEsagonoCos);
-        g.ctx.strokeStyle = '#00ff00';
-        g.ctx.beginPath();
-        g.ctx.moveTo(        0,y1 + g.ypad);
-        g.ctx.lineTo(g.c.width,y1 + g.ypad);
-        //g.ctx.stroke();
-
-        }
-
-        if(1){
-        // ascendente
-        const a = Math.sqrt(3);
-        const b = y - a*x;
-        g.ctx.strokeStyle = '#ff0000';
-        g.ctx.beginPath();
-        g.ctx.moveTo(        0,b);
-        g.ctx.lineTo(g.c.width,a*g.c.width+b);
-        //g.ctx.stroke();
-
-        g.ctx.strokeStyle = '#00ff00';
-        var b0 = (y - g.ypad) - (a * (x - g.xpad));
-        b0 = b0 - (b0 % (2 * g.latoEsagonoCos));
-        b0 -= 2 * g.latoEsagonoCos;
-        g.ctx.beginPath();
-        g.ctx.moveTo(        0,b0 + g.ypad);
-        g.ctx.lineTo(g.c.width,a * g.c.width + b0+ g.ypad);
-        //g.ctx.stroke();
-        }
-
-        if(1){
-        // discendente
-        const a = - Math.sqrt(3);
-        const b = y - a*x;
-        g.ctx.strokeStyle = '#ff0000';
-        g.ctx.beginPath();
-        g.ctx.moveTo(        0,b);
-        g.ctx.lineTo(g.c.width,a*g.c.width+b);
-        //g.ctx.stroke();
-
-        g.ctx.strokeStyle = '#00ff00';
-        var b0 = (y - g.ypad) - (a * (x - g.xpad));
-        b0 = b0 - (b0 % (2 * g.latoEsagonoCos));
-        b0 += 2 * g.latoEsagonoCos;
-        g.ctx.beginPath();
-        g.ctx.moveTo(        0,b0 + g.ypad);
-        g.ctx.lineTo(g.c.width,a * g.c.width + b0+ g.ypad);
-        //g.ctx.stroke();
-        }
-
-        g.ctx.strokeStyle = '#3366ff';
-        for(var i = 0; i < 13; i++){
-          const a = (g.latoEsagonoCos) / (g.latoEsagono + g.latoEsagonoSin);
-          const b = (i * (2 * g.latoEsagonoCos));
-          const x0 = g.xpad + 0;
-          const y0 = g.ypad + b;
-          const x1 = g.xpad + g.c.width;
-          const y1 = g.ypad + a * g.c.width + b;
-          g.ctx.beginPath();
-          g.ctx.moveTo(x0,y0 + g.latoEsagonoCos + g.latoEsagonoCos);
-          g.ctx.lineTo(x1,y1 + g.latoEsagonoCos + g.latoEsagonoCos);
-          g.ctx.stroke();
-        }
-        for(var i = 0; i < 13; i++){
-          const a = - ((g.latoEsagonoCos) / (g.latoEsagono + g.latoEsagonoSin));
-          const b = (i * (2 * g.latoEsagonoCos));
-          const x0 = g.xpad + 0;
-          const y0 = g.ypad + b;
-          const x1 = g.xpad + g.c.width;
-          const y1 = g.ypad + a * g.c.width + b;
-          //g.ctx.beginPath();
-          //g.ctx.moveTo(x0,y0 + g.latoEsagonoCos + g.latoEsagonoCos);
-          //g.ctx.lineTo(x1,y1 + g.latoEsagonoCos + g.latoEsagonoCos);
-          //g.ctx.stroke();
-        }
-        for(var i = 0; i < 13; i++){
-          g.ctx.beginPath();
-          g.ctx.moveTo(g.xpad + (i * (g.latoEsagono + g.latoEsagonoSin)),g.ypad + 0         );
-          g.ctx.lineTo(g.xpad + (i * (g.latoEsagono + g.latoEsagonoSin)),g.ypad + g.c.height);
-          g.ctx.stroke();
-        }
-        
-      }
-      if (1){
-        // DIAGONALE ASCENDENTE SU PIANO CARTESIANO
-
-        // rimozione padding
         const x0 = x - g.xpad;
         const y0 = y - g.ypad;
         const y1 = y0 - g.latoEsagonoCos;
+
+        if (x0 < 0) { return [0,0]; }
         
         const altezzaEsagono   = g.latoEsagonoCos * 2;
         const larghezzaEsagono = g.latoEsagonoSin + g.latoEsagono;
@@ -222,7 +119,6 @@ if('cli-server' !== $api){
         const bDis = Math.sqrt(deltaY*deltaY + x0*x0);
         const j0 = Math.round(bAsc / altezzaEsagono);
         const i0 = (bDis - (bDis % altezzaEsagono)) / altezzaEsagono;
-
 
         let v = verticiEsagono(i0,j0);
         v = v.map(o => ({x:o.x-g.xpad,y:o.y-g.ypad}));
@@ -237,52 +133,7 @@ if('cli-server' !== $api){
         const i = i0 + (yDis < y0 && y0 < yAsc);
         const j = j0 + (yCst < y0 && yAsc < y0);
 
-        g.ctx.lineWidth   = lineWidth;
-        g.ctx.strokeStyle = strokeStyle;
-
-    if(g.debug) {
-        g.ctx.lineWidth   = 1;
-        g.ctx.strokeStyle = '#00ff00';
-
-        var x_0 = 0;
-        var x_1 = 0;
-        var y_0 = 0;
-        var y_1 = 0;
-
-        x_0 = 0;
-        x_1 = g.c.width;
-        y_0 = bAsc0;
-        y_1 = a1 * x_1 + bAsc0;
-        g.ctx.beginPath();
-        g.ctx.moveTo(x_0 + g.xpad,y_0 + g.ypad);
-        g.ctx.lineTo(x_1 + g.xpad,y_1 + g.ypad);
-        g.ctx.stroke();
-
-        x_0 = 0;
-        x_1 = g.c.width;
-        y_0 = v[3].y;
-        y_1 = v[3].y;
-        g.ctx.lineWidth   = 1;
-        g.ctx.strokeStyle = '#00ff00';
-        g.ctx.beginPath();
-        g.ctx.moveTo(x_0 + g.xpad,y_0 + g.ypad);
-        g.ctx.lineTo(x_1 + g.xpad,y_1 + g.ypad);
-        g.ctx.stroke();
-
-        x_0 = 0;
-        x_1 = g.c.width;
-        y_0 = bDis0;
-        y_1 = -a1 * x_1 + bDis0;
-        g.ctx.lineWidth   = 1;
-        g.ctx.strokeStyle = '#00ff00';
-        g.ctx.beginPath();
-        g.ctx.moveTo(x_0 + g.xpad,y_0 + g.ypad);
-        g.ctx.lineTo(x_1 + g.xpad,y_1 + g.ypad);
-        g.ctx.stroke();
-    }
-
         return [i,j];
-      }
     }
 
     function verticiEsagono(i,j){
@@ -299,8 +150,15 @@ if('cli-server' !== $api){
       return vertici;
     }
 
-    function selectCellaEsagono(x,y){
+    function selezionaCellaEsagono(x,y){
       const [i,j] = idxByPos(x,y);
+
+
+      // Coordindate dentro alla tavola
+      if(10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i))) {
+        return [0,0];
+      }
+
       const v = verticiEsagono(i,j);
 
       g.ctx.lineWidth = 6;
@@ -350,17 +208,17 @@ c.addEventListener('mousedown', function(e) {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     drawScacchiera();
-    //drawPezzi();
-    selectCellaEsagono(x,y);
+    drawPezzi();
+    selezionaCellaEsagono(x,y);
 })
 
 
-    function drawPezzi(pezzi){
+    function drawPezzi(){
       const dimensioneTesto = (g.latoEsagonoCos * 2);
       const allineamentoX = 0;
       const allineamentoY = -8;
-    var deathcounter = 0;
       function disegnaPezzo(pezzo){
+        g.ctx.beginPath();
         const i = pezzo.i;
         const j = pezzo.j;
         const [x,y] = posByIdx(i,j);
@@ -368,25 +226,24 @@ c.addEventListener('mousedown', function(e) {
         g.ctx.strokeText(pezzo.nome, x + allineamentoX, y + dimensioneTesto + allineamentoY);
         g.ctx.fill();
         g.ctx.stroke();
-    if(0 > --deathcounter){
-        console.log(pezzo,x,y);
-        throw deathcounter;
-    }
       }
 
       g.ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
 
       g.ctx.fillStyle   = 'white';
       g.ctx.strokeStyle = 'black';
-      pezzi.bianchi.forEach(disegnaPezzo);
+      g.pezzi.bianchi.forEach(disegnaPezzo);
 
       g.ctx.fillStyle   = 'black';
       g.ctx.strokeStyle = 'white';
-      pezzi.neri.forEach(disegnaPezzo);
+      g.pezzi.neri.forEach(disegnaPezzo);
+     
+
+      g.ctx.fillStyle   = '';
 
     }
 
     drawScacchiera();
-    drawPezzi(g.pezzi);
+    drawPezzi();
 
     </script>
