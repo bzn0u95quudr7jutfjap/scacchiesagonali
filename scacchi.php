@@ -12,20 +12,27 @@ if('cli-server' !== $api){
       die();
 };
 
-if(!session_start()){
-  die('ERRORE CREAZIONE DELLA SESSIONE');
+$outdir = __DIR__ . '/.partite/';
+$b_outdir_exists = file_exists($outdir);
+$b_outdir_isdir  = is_dir($outdir);
+if ($b_outdir_exists && !$b_outdir_isdir) {
+  die("outdir esiste e non è una cartella :: $outdir\n");
 }
+if (!$b_outdir_exists && mkdir($outdir,0700)) {
+  die("errore nella creazione di outdir :: $outdir\n");
+}
+chdir($outdir);
 
 if(!array_key_exists('method',$_GET)){
-  $a_partite = 'partite';
-  $a_partite = $_SESSION[$a_partite];
-  $a_partite = array_keys($a_partite);
+  $a_partite = '*';
+  $a_partite = glob($a_partite);
   $a_partite = array_map(fn($a)=> "<li><a href='?method=partita&partita=$a'>$a</a></li>",$a_partite);
   $a_partite = implode('',$a_partite);
   $html = <<<eof
   <!DOCTYPE html>
   <html>
     <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
       </style>
     </head>
@@ -44,21 +51,47 @@ $method = 'method';
 $method = $_GET[$method];
 switch($method){
 case 'nuova_partita': {
-    $partite_k = 'partite';
-    if(!array_key_exists($partite_k,$_SESSION)) {
-      $_SESSION[$partite_k] = [];
+    $condizioni_iniziali =
+    'A,B,05,10,05,10 A,B,05,09,05,09 A,B,05,08,05,08 P,B,01,10,01,10 P,B,02,09,02,09 ' .
+    'P,B,03,08,03,08 P,B,04,07,04,07 P,B,05,06,05,06 P,B,06,06,06,06 P,B,07,06,07,06 ' .
+    'P,B,08,06,08,06 P,B,09,06,09,06 T,B,02,10,02,10 T,B,08,07,08,07 C,B,03,10,03,10 ' .
+    'C,B,07,08,07,08 D,B,04,10,04,10 R,B,06,09,06,09 P,N,01,04,01,04 P,N,02,04,02,04 ' .
+    'P,N,03,04,03,04 P,N,04,04,04,04 P,N,05,04,05,04 P,N,06,03,06,03 P,N,07,02,07,02 ' .
+    'P,N,08,01,08,01 P,N,09,00,09,00 A,N,05,00,05,00 A,N,05,01,05,01 A,N,05,02,05,02 ' .
+    'T,N,02,03,02,03 T,N,08,00,08,00 C,N,03,02,03,02 C,N,07,00,07,00 D,N,04,01,04,01 ' .
+    'R,N,06,00,06,00';
+    $condizioni_iniziali = str_replace(' ',"\n",$condizioni_iniziali);
+    $nuova_partita = '*';
+    $nuova_partita = glob($nuova_partita);
+    $nuova_partita = count($nuova_partita);
+    $nuova_partita = sprintf('%04d',$nuova_partita);
+    echo "$nuova_partita\n";
+    $nuova_partita = file_put_contents($nuova_partita,$condizioni_iniziali);
+    if(false === $nuova_partita){
+      die('errore scrittura di una nuova partita');
     }
-    $nuova_partita = range(0,3);
-    $nuova_partita = array_map(fn()=>sprintf('%02x',rand() % 256),$nuova_partita);
-    $nuova_partita = implode('',$nuova_partita);
-    $_SESSION[$partite_k][$nuova_partita] = [];
     header('Location: ?');
   } break;
 case 'partita': {
+    $partita = 'partita';
+    $partita = $_GET[$partita];
+    $partita = fopen($partita,'r+');
+    $pezzi = [];
+    while($mossa = fgetcsv($partita,escape: '\\')){
+      $pezzo  = $mossa[0];
+      $colore = $mossa[1];
+      $da_i = (int)$mossa[2];
+      $da_j = (int)$mossa[3];
+      $a_i = (int)$mossa[4];
+      $a_j = (int)$mossa[5];
+      unset($pezzi[$da_i][$da_j]);
+      $pezzi[$a_i][$a_j] = ['nome' => $pezzo, 'colore' => $colore];
+    }
 ?>
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
       html body { 
         margin: 0px;
@@ -95,48 +128,7 @@ case 'partita': {
       g.latoEsagono    = 20;
       g.latoEsagonoSin = g.latoEsagono * 1/2;
       g.latoEsagonoCos = g.latoEsagono * Math.sqrt(3)/2;
-      g.pezzi =
-        { bianchi:
-          [ { nome: 'A', i: 5, j:10 }
-          , { nome: 'A', i: 5, j: 9 }
-          , { nome: 'A', i: 5, j: 8 }
-          , { nome: 'P', i: 1, j:10 }
-          , { nome: 'P', i: 2, j: 9 }
-          , { nome: 'P', i: 3, j: 8 }
-          , { nome: 'P', i: 4, j: 7 }
-          , { nome: 'P', i: 5, j: 6 }
-          , { nome: 'P', i: 6, j: 6 }
-          , { nome: 'P', i: 7, j: 6 }
-          , { nome: 'P', i: 8, j: 6 }
-          , { nome: 'P', i: 9, j: 6 }
-          , { nome: 'T', i: 2, j:10 }
-          , { nome: 'T', i: 8, j: 7 }
-          , { nome: 'C', i: 3, j:10 }
-          , { nome: 'C', i: 7, j: 8 }
-          , { nome: 'D', i: 4, j:10 }
-          , { nome: 'R', i: 6, j: 9 }
-          ]
-        , neri:
-          [ { nome: 'P', i: 1, j: 4 }
-          , { nome: 'P', i: 2, j: 4 }
-          , { nome: 'P', i: 3, j: 4 }
-          , { nome: 'P', i: 4, j: 4 }
-          , { nome: 'P', i: 5, j: 4 }
-          , { nome: 'P', i: 6, j: 3 }
-          , { nome: 'P', i: 7, j: 2 }
-          , { nome: 'P', i: 8, j: 1 }
-          , { nome: 'P', i: 9, j: 0 }
-          , { nome: 'A', i: 5, j: 0 }
-          , { nome: 'A', i: 5, j: 1 }
-          , { nome: 'A', i: 5, j: 2 }
-          , { nome: 'T', i: 2, j: 3 }
-          , { nome: 'T', i: 8, j: 0 }
-          , { nome: 'C', i: 3, j: 2 }
-          , { nome: 'C', i: 7, j: 0 }
-          , { nome: 'D', i: 4, j: 1 }
-          , { nome: 'R', i: 6, j: 0 }
-          ]
-        };
+      g.pezzi = <?php echo json_encode($pezzi,JSON_FORCE_OBJECT); ?>;
       return g;
     }();
 
@@ -260,28 +252,35 @@ c.addEventListener('mousedown', function(e) {
       const dimensioneTesto = (g.latoEsagonoCos * 2);
       const allineamentoX = 0;
       const allineamentoY = -8;
-      function disegnaPezzo(pezzo){
-        g.ctx.beginPath();
-        const i = pezzo.i;
-        const j = pezzo.j;
+      function disegnaPezzo(i,j,pezzo){
         const [x,y] = posByIdx(i,j);
+        
+        g.ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
+        if ('B' == pezzo.colore) {
+          // BIANCO
+          g.ctx.fillStyle   = '#cccccc';
+          g.ctx.strokeStyle = '#444444';
+        } else {
+          // NERO
+          g.ctx.fillStyle   = '#444444';
+          g.ctx.strokeStyle = '#cccccc';
+        }
+
+        g.ctx.beginPath();
         g.ctx.fillText  (pezzo.nome, x + allineamentoX, y + dimensioneTesto + allineamentoY);
         g.ctx.strokeText(pezzo.nome, x + allineamentoX, y + dimensioneTesto + allineamentoY);
         g.ctx.fill();
         g.ctx.stroke();
       }
 
-      g.ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
-
-      g.ctx.fillStyle   = '#cccccc';
-      g.ctx.strokeStyle = '#444444';
-      g.pezzi.bianchi.forEach(disegnaPezzo);
-
-      g.ctx.fillStyle   = '#444444';
-      g.ctx.strokeStyle = '#cccccc';
-      g.pezzi.neri.forEach(disegnaPezzo);
-
-      g.ctx.fillStyle   = '';
+      //g.pezzi.bianchi.forEach(disegnaPezzo);
+      //g.pezzi.neri.forEach(disegnaPezzo);
+    
+      Object.keys(g.pezzi).forEach(i => {
+        Object.keys(g.pezzi[i]).forEach(j => {
+          disegnaPezzo(i,j,g.pezzi[i][j])
+        });
+      });
 
     }
 
