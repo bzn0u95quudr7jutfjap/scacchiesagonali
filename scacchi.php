@@ -150,7 +150,7 @@ if('cli-server' !== $api){
       return vertici;
     }
 
-    function selezionaCellaEsagono(x,y){
+    function selezionaPezzo(x,y){
       const [i,j] = idxByPos(x,y);
 
 
@@ -209,7 +209,7 @@ c.addEventListener('mousedown', function(e) {
     const y = event.clientY - rect.top;
     drawScacchiera();
     drawPezzi();
-    selezionaCellaEsagono(x,y);
+    selezionaPezzo(x,y);
 })
 
 
