@@ -97,8 +97,6 @@ if('cli-server' !== $api){
       return g;
     }();
 
-    console.log(g);
-
     function posByIdx(i,j){
       const x = g.xpad + ((g.latoEsagono + g.latoEsagonoSin) * i);
       const y = g.ypad + (g.latoEsagonoCos * 2 * j) + (g.latoEsagonoCos * i);
@@ -228,7 +226,6 @@ if('cli-server' !== $api){
 
         let v = verticiEsagono(i0,j0);
         v = v.map(o => ({x:o.x-g.xpad,y:o.y-g.ypad}));
-        console.log(v[3]);
         const a1 = Math.sqrt(3);
         const bAsc0 = v[3].y - (+a1 * v[3].x);
         const bDis0 = v[3].y - (-a1 * v[3].x);
@@ -237,15 +234,52 @@ if('cli-server' !== $api){
         const yDis = -a1 * x0 + bDis0;
         const yCst = v[3].y;
 
-        console.log('Asc ',bAsc0, yAsc, ' <- ', y0);
-        console.log('Dis ',bDis0, yDis, ' <- ', y0);
-        console.log('Cst ',yCst , yCst, ' <- ', y0);
-
         const i = i0 + (yDis < y0 && y0 < yAsc);
         const j = j0 + (yCst < y0 && yAsc < y0);
 
         g.ctx.lineWidth   = lineWidth;
         g.ctx.strokeStyle = strokeStyle;
+
+    if(g.debug) {
+        g.ctx.lineWidth   = 1;
+        g.ctx.strokeStyle = '#00ff00';
+
+        var x_0 = 0;
+        var x_1 = 0;
+        var y_0 = 0;
+        var y_1 = 0;
+
+        x_0 = 0;
+        x_1 = g.c.width;
+        y_0 = bAsc0;
+        y_1 = a1 * x_1 + bAsc0;
+        g.ctx.beginPath();
+        g.ctx.moveTo(x_0 + g.xpad,y_0 + g.ypad);
+        g.ctx.lineTo(x_1 + g.xpad,y_1 + g.ypad);
+        g.ctx.stroke();
+
+        x_0 = 0;
+        x_1 = g.c.width;
+        y_0 = v[3].y;
+        y_1 = v[3].y;
+        g.ctx.lineWidth   = 1;
+        g.ctx.strokeStyle = '#00ff00';
+        g.ctx.beginPath();
+        g.ctx.moveTo(x_0 + g.xpad,y_0 + g.ypad);
+        g.ctx.lineTo(x_1 + g.xpad,y_1 + g.ypad);
+        g.ctx.stroke();
+
+        x_0 = 0;
+        x_1 = g.c.width;
+        y_0 = bDis0;
+        y_1 = -a1 * x_1 + bDis0;
+        g.ctx.lineWidth   = 1;
+        g.ctx.strokeStyle = '#00ff00';
+        g.ctx.beginPath();
+        g.ctx.moveTo(x_0 + g.xpad,y_0 + g.ypad);
+        g.ctx.lineTo(x_1 + g.xpad,y_1 + g.ypad);
+        g.ctx.stroke();
+    }
 
         return [i,j];
       }
