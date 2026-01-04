@@ -87,6 +87,8 @@ case 'partita': {
       unset($pezzi[$da_i][$da_j]);
       $pezzi[$a_i][$a_j] = ['nome' => $pezzo, 'colore' => $colore];
     }
+    $giocatore = 'g';
+    $giocatore = array_key_exists($giocatore,$_GET) ? $_GET[$giocatore] : 's';
 ?>
 <!DOCTYPE html>
 <html>
@@ -108,6 +110,11 @@ case 'partita': {
     </style>
   </head>
   <body>
+    <select id='htmlGiocatore'>
+      <option value='s'>Spettatore</option>
+      <option value='B'>Bianco</option>
+      <option value='N'>Nero</option>
+    </select>
     <canvas id=c></canvas>
     <pre id='data'></pre>
     <script>
@@ -129,6 +136,8 @@ case 'partita': {
       g.latoEsagonoSin = g.latoEsagono * 1/2;
       g.latoEsagonoCos = g.latoEsagono * Math.sqrt(3)/2;
       g.pezzi = <?php echo json_encode($pezzi,JSON_FORCE_OBJECT); ?>;
+      g.giocatore = htmlGiocatore;
+      g.giocatore.value = <?php echo json_encode($giocatore); ?>;
       return g;
     }();
 
@@ -188,10 +197,19 @@ case 'partita': {
     function selezionaPezzo(x,y){
       const [i,j] = idxByPos(x,y);
 
-
       // Coordindate dentro alla tavola
       if(10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i))) {
-        return [0,0];
+        return;
+      }
+      
+      const pezzoAlleCoordinate = i in g.pezzi && j in g.pezzi[i];
+      if (!pezzoAlleCoordinate){
+        return;
+      }
+
+      const pezzo = g.pezzi[i][j];
+      if(g.giocatore.value != pezzo.colore){
+        return;
       }
 
       const v = verticiEsagono(i,j);
