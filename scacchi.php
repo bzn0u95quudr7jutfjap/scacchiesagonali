@@ -159,12 +159,11 @@ case 'partita': {
     }
 
     const g = function init(){
-    const latoCanvas = window.innerHeight - 24;
-    c.height = latoCanvas;
-    c.width  = latoCanvas;
-    c.style.width  = latoCanvas + 'px';
-    c.style.height = latoCanvas + 'px';
-
+      const latoCanvas = window.innerHeight - 24;
+      c.height = latoCanvas;
+      c.width  = latoCanvas;
+      c.style.width  = latoCanvas + 'px';
+      c.style.height = latoCanvas + 'px';
       var g = {};
       g.debug = 1;
       g.c    = c;
@@ -175,6 +174,7 @@ case 'partita': {
       g.latoEsagonoSin = g.latoEsagono * 1/2;
       g.latoEsagonoCos = g.latoEsagono * Math.sqrt(3)/2;
       g.pezzi = <?php echo json_encode($pezzi,JSON_FORCE_OBJECT); ?>;
+      g.movimenti = {};
       g.giocatore = htmlGiocatore;
       g.giocatore.value = <?php echo json_encode($giocatore); ?>;
       return g;
@@ -233,6 +233,25 @@ case 'partita': {
       return vertici;
     }
 
+    function coloraBordoEsagono(i,j,colore){
+      const v = verticiEsagono(i,j);
+      g.ctx.lineWidth = 6;
+      g.ctx.strokeStyle = colore;
+      g.ctx.beginPath();
+      g.ctx.moveTo(v[0].x,v[0].y); 
+      v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
+      g.ctx.closePath();
+      g.ctx.stroke();
+    }
+
+    function cellaFuoriTavola(i,j){
+        return 10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i));
+    }
+
+    function cellaLibera(i,j){
+      return !(i in g.pezzi) || !(j in g.pezzi[i]);
+    }
+
     function spostaVerticale(i,j,o){
       return [i,j + o];
     }
@@ -251,72 +270,49 @@ case 'partita': {
     function spostaDiagonaleDiscendente(i,j,o){
       return [i + o,j - 2 * o];
     }
-    
 
-    function selezionaPezzo(x,y){
-      function cellaFuoriTavola(i,j){
-          return 10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i));
-      }
-      function cellaLibera(i,j){
-        return !(i in g.pezzi) || !(j in g.pezzi[i]);
-      }
-      function coloraBordoEsagono(i,j,colore){
-        const v = verticiEsagono(i,j);
-        g.ctx.lineWidth = 6;
-        g.ctx.strokeStyle = colore;
-        g.ctx.beginPath();
-        g.ctx.moveTo(v[0].x,v[0].y); 
-        v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
-        g.ctx.closePath();
-        g.ctx.stroke();
-      }
-      function coloraCellaMovimento([i,j]){
-        const cellaOccupata = !cellaLibera(i,j)
-        if (cellaFuoriTavola(i,j) || (cellaOccupata && g.pezzi[i][j].colore == pezzo.colore)) {
-          return 0;
-        }
-        if (cellaOccupata) {
-          coloraBordoEsagono(i,j, '#cc0000');
-          return 0;
-        } 
-        coloraBordoEsagono(i,j, '#cccc00');
-        return 1;
-      }
+    function movimentiPezzo(i,j){
+
       function applicaMovimenti(i,j,movimenti){
+        var possibili = [];
         for(var k = 1; k < 64; k++) {
           var movimentiValidi = 0;
           for(var loopCounter = 0; loopCounter < movimenti.length; loopCounter++){
             const m = movimenti[loopCounter];
-            const p = m.p && coloraCellaMovimento(m.m(i,j,k*m.d));
-            movimenti[loopCounter].p = p;
+            const cella = m.m(i,j,k*m.d);
+            const [i0,j0] = cella;
+            const cellaOccupata = !cellaLibera(i0,j0);
+            const pezzoNemico = cellaOccupata && (g.pezzi[i][j].colore!=g.pezzi[i0][j0].colore);
+            const p = m.p && !cellaFuoriTavola(i0,j0) && (!cellaOccupata || pezzoNemico);
+            if(p){ possibili.push(cella); }
+            movimenti[loopCounter].p = p && !pezzoNemico;
             movimentiValidi += p;
           }
           if (!movimentiValidi) {
-            return;
+            break;
           }
         }
+        return possibili;
       }
 
-      const [i,j] = idxByPos(x,y);
+      i = Number(i);
+      j = Number(j);
 
-      if(cellaFuoriTavola(i,j) || cellaLibera(i,j)) {
-        return;
+      if (cellaFuoriTavola(i,j) || cellaLibera(i,j)) {
+        return null;
       }
+  
+      if (!(i in g.movimenti)) { g.movimenti[i] = {}; }
+      g.movimenti[i][j] = null;
 
       const pezzo = g.pezzi[i][j];
-
-      if(g.giocatore.value != pezzo.colore){
-        return;
-      }
-      
-      coloraBordoEsagono(i,j,'#6688ccff');
 
       switch (pezzo.nome) {
 
         case 'P': {
           const posizioniInizialiPedone =
-            { 'B' : { "1" : 10, "2" : 9, "3" : 8, "4" : 7, "5" : 6, "6" : 6, "7" : 6, "8" : 6, "9" : 6 }
-            , 'N' : { "1" :  4, "2" : 4, "3" : 4, "4" : 4, "5" : 4, "6" : 3, "7" : 2, "8" : 1, "9" : 0 }
+            { 'B' : { 1 : 10, 2 : 9, 3 : 8, 4 : 7, 5 : 6, 6 : 6, 7 : 6, 8 : 6, 9 : 6 }
+            , 'N' : { 1 :  4, 2 : 4, 3 : 4, 4 : 4, 5 : 4, 6 : 3, 7 : 2, 8 : 1, 9 : 0 }
             };
           const celleMovibiliPedone =
             { 'B' : [ { i : 0, j : -1 }, { i : 0, j : -2 } ]
@@ -329,21 +325,23 @@ case 'partita': {
           const posizioniIniziali = posizioniInizialiPedone[pezzo.colore];
           const celleMovibili     = celleMovibiliPedone[pezzo.colore];
           const celleMangiabili   = celleMangiabiliPedone[pezzo.colore];
+          var possibili = [];
           for(const o of celleMovibili){
             const i0 = i + o.i;
             const j0 = j + o.j;
             if (!cellaLibera(i0,j0) || cellaFuoriTavola(i0,j0)) {
               break;
             }
-            coloraBordoEsagono(i0,j0, '#cccc00');
+            possibili.push([i0,j0]);
           }
           for(const o of celleMangiabili){
             const i0 = i + o.i;
             const j0 = j + o.j;
-            if (!cellaLibera(i0,j0) && g.pezzi[i0][j0].colore != pezzo.colore) {
-              coloraBordoEsagono(i0,j0, '#cc0000');
+            if (!cellaFuoriTavola(i0,j0) && !cellaLibera(i0,j0) && g.pezzi[i0][j0].colore != pezzo.colore) {
+              possibili.push([i0,j0]);
             }
           }
+          g.movimenti[i][j] = possibili;
         } break;
 
         case 'A': {
@@ -355,7 +353,7 @@ case 'partita': {
             , { p : 1, d : -1, m : spostaDiagonaleDiscendente }
             , { p : 1, d : +1, m : spostaDiagonaleDiscendente }
             ]
-            applicaMovimenti(i,j,movimenti);
+          g.movimenti[i][j] = applicaMovimenti(i,j,movimenti);
         } break;
 
         case 'T': {
@@ -367,7 +365,7 @@ case 'partita': {
             , { p : 1, d : -1, m : spostaDiscendente }
             , { p : 1, d : +1, m : spostaDiscendente }
             ]
-            applicaMovimenti(i,j,movimenti);
+          g.movimenti[i][j] = applicaMovimenti(i,j,movimenti);
         } break;
 
         case 'D': {
@@ -385,7 +383,24 @@ case 'partita': {
             , { p : 1, d : -1, m : spostaDiagonaleDiscendente }
             , { p : 1, d : +1, m : spostaDiagonaleDiscendente }
             ]
-            applicaMovimenti(i,j,movimenti);
+          g.movimenti[i][j] = applicaMovimenti(i,j,movimenti);
+        } break;
+
+        case 'C': {
+          g.movimenti[i][j] =
+            [ [i - 1,j - 2]
+            , [i + 1,j - 3]
+            , [i + 2,j - 3]
+            , [i + 3,j - 2]
+            , [i + 3,j - 1]
+            , [i + 2,j + 1]
+            , [i + 1,j + 2]
+            , [i - 1,j + 3]
+            , [i - 2,j + 3]
+            , [i - 3,j + 2]
+            , [i - 3,j + 1]
+            , [i - 2,j - 1]
+            ];
         } break;
 
         case 'R': {
@@ -403,32 +418,84 @@ case 'partita': {
             , { p : 1, d : -1, m : spostaDiagonaleDiscendente }
             , { p : 1, d : +1, m : spostaDiagonaleDiscendente }
             ]
+          if (pezzo.colore == g.giocatore.value) {
+            var possibili = [];
+            var movimentiNemici = {};
+            for(const i0 of Object.keys(g.pezzi)){
+              for(const j0 of Object.keys(g.pezzi[i0])) {
+                const pezzoNemico = g.pezzi[i0][j0]
+                if (pezzoNemico.colore != pezzo.colore) {
+                  const movimentiPezzoNemico = g.movimenti[i0][j0];
+                  for (const [i1,j1] of movimentiPezzoNemico) {
+                    if (!(i1 in movimentiNemici)) { movimentiNemici[i1] = {}; }
+                    movimentiNemici[i1][j1] = null;
+                  }
+                }
+              }
+            }
+            console.log('movimentiNemici ',movimentiNemici);
             function applicaMovimentiRe(m){
               const cella = m.m(i,j,m.d);
-              if(1){
-                coloraCellaMovimento(cella);
+              const [i0,j0] = cella;
+              const cellaOccupata = !cellaLibera(i0,j0);
+              const pezzoNemico = cellaOccupata && (g.pezzi[i][j].colore!=g.pezzi[i0][j0].colore);
+              const cellaSicura = !(i0 in movimentiNemici) || !(j0 in movimentiNemici[i0]) ;
+              if(cellaSicura && (!cellaOccupata || pezzoNemico)){
+                possibili.push(cella);
               }
             }
             movimenti.forEach(applicaMovimentiRe);
-        } break;
-
-        case 'C': {
-            coloraCellaMovimento([i - 1,j - 2]);
-            coloraCellaMovimento([i + 1,j - 3]);
-            coloraCellaMovimento([i + 2,j - 3]);
-            coloraCellaMovimento([i + 3,j - 2]);
-            coloraCellaMovimento([i + 3,j - 1]);
-            coloraCellaMovimento([i + 2,j + 1]);
-            coloraCellaMovimento([i + 1,j + 2]);
-            coloraCellaMovimento([i - 1,j + 3]);
-            coloraCellaMovimento([i - 2,j + 3]);
-            coloraCellaMovimento([i - 3,j + 2]);
-            coloraCellaMovimento([i - 3,j + 1]);
-            coloraCellaMovimento([i - 2,j - 1]);
+            g.movimenti[i][j] = possibili
+          }else{
+            var possibili = [];
+            function applicaMovimentiRe(m){
+              const cella = m.m(i,j,m.d);
+              const [i0,j0] = cella;
+              const cellaOccupata = !cellaLibera(i0,j0);
+              const pezzoNemico = cellaOccupata && (g.pezzi[i][j].colore!=g.pezzi[i0][j0].colore);
+              if((!cellaOccupata || pezzoNemico)){
+                possibili.push(cella);
+              }
+            }
+            movimenti.forEach(applicaMovimentiRe);
+            g.movimenti[i][j] = possibili
+          }
         } break;
 
       }
 
+    }
+    
+
+    function selezionaPezzo(x,y){
+      function coloraCellaMovimento([i,j]){
+        const cellaOccupata = !cellaLibera(i,j)
+        if (cellaFuoriTavola(i,j) || (cellaOccupata && g.pezzi[i][j].colore == pezzo.colore)) {
+          return 0;
+        }
+        if (cellaOccupata) {
+          coloraBordoEsagono(i,j, '#cc0000');
+          return 0;
+        } 
+        coloraBordoEsagono(i,j, '#cccc00');
+        return 1;
+      }
+
+      const [i,j] = idxByPos(x,y);
+
+      if(cellaFuoriTavola(i,j) || cellaLibera(i,j)) {
+        return;
+      }
+
+      const pezzo = g.pezzi[i][j];
+
+      if(g.giocatore.value != pezzo.colore){
+        return;
+      }
+
+      g.movimenti[i][j].forEach(coloraCellaMovimento);
+
+      coloraBordoEsagono(i,j,'#6688ccff');
     }
 
     function drawCellaEsagonoByIdx(i,j){
@@ -462,16 +529,6 @@ case 'partita': {
       for(var i = 0; i <  7; i++){ drawCellaEsagonoByIdx(0 + i, 9); }
       for(var i = 0; i <  6; i++){ drawCellaEsagonoByIdx(0 + i,10); }
     }
-
-c.addEventListener('mousedown', function(e) {
-    const rect = this.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    drawScacchiera();
-    drawPezzi();
-    selezionaPezzo(x,y);
-})
-
 
     function drawPezzi(){
       const dimensioneTesto = (g.latoEsagonoCos * 2);
@@ -509,6 +566,43 @@ c.addEventListener('mousedown', function(e) {
 
     }
 
+    function updateMovimenti(){
+      g.movimenti = {};
+      var idxRe = [];
+      for(const i of Object.keys(g.pezzi)){
+        for(const j of Object.keys(g.pezzi[i])){
+          if('R' == g.pezzi[i][j].nome && g.pezzi[i][j].colore == g.giocatore.value){
+            idxRe.push([i,j]);
+          }else{
+            movimentiPezzo(i,j);
+          }
+        }
+      }
+      for(const [i,j] of idxRe){
+        movimentiPezzo(i,j);
+      }
+    }
+
+
+    // =============================================
+    // LISTENERS
+    // =============================================
+
+c.addEventListener('mousedown', function(e) {
+    const rect = this.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    drawScacchiera();
+    drawPezzi();
+    selezionaPezzo(x,y);
+})
+
+
+    // =============================================
+    // MAIN
+    // =============================================
+
+    updateMovimenti();
     drawScacchiera();
     drawPezzi();
 
