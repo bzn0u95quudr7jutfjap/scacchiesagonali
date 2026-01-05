@@ -151,6 +151,13 @@ case 'partita': {
     <pre id='data'></pre>
     <script>
 
+    function addPezzo(i,j,c,n) {
+      if(!(i in g.pezzi)){
+        g.pezzi[i] = {};
+      }
+      g.pezzi[i][j] = {colore:c,nome:n};
+    }
+
     const g = function init(){
     const latoCanvas = window.innerHeight - 24;
     c.height = latoCanvas;
@@ -229,8 +236,41 @@ case 'partita': {
     function selezionaPezzo(x,y){
       const [i,j] = idxByPos(x,y);
 
-      // Coordindate dentro alla tavola
-      if(10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i))) {
+      function cellaFuoriTavola(i,j){
+          return 10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i));
+      }
+
+      function cellaLibera(i,j){
+        return !(i in g.pezzi) || !(j in g.pezzi[i]);
+      }
+
+      function coloraBordoEsagono(i,j,colore){
+        const v = verticiEsagono(i,j);
+        g.ctx.lineWidth = 6;
+        g.ctx.strokeStyle = colore;
+        g.ctx.beginPath();
+        g.ctx.moveTo(v[0].x,v[0].y); 
+        v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
+        g.ctx.closePath();
+        g.ctx.stroke();
+      }
+
+      function noOp() { return noOp; }
+
+      function coloraCellaMovimento(i,j){
+        const cellaOccupata = !cellaLibera(i,j)
+        if (cellaFuoriTavola(i,j) || (cellaOccupata && g.pezzi[i][j].colore == pezzo.colore)) {
+          return noOp;
+        }
+        if (cellaOccupata) {
+          coloraBordoEsagono(i,j, '#cc0000');
+          return noOp;
+        } 
+        coloraBordoEsagono(i,j, '#cccc00');
+        return coloraCellaMovimento;
+      }
+
+      if(cellaFuoriTavola(i,j)) {
         return;
       }
       
@@ -244,20 +284,12 @@ case 'partita': {
         return;
       }
       
-      function coloraBordoEsagono(i,j,colore){
-        const v = verticiEsagono(i,j);
-        g.ctx.lineWidth = 6;
-        g.ctx.strokeStyle = colore;
-        g.ctx.beginPath();
-        g.ctx.moveTo(v[0].x,v[0].y); 
-        v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
-        g.ctx.closePath();
-        g.ctx.stroke();
-      }
+
     
       coloraBordoEsagono(i,j,'#6688ccff');
 
       switch (pezzo.nome) {
+
         case 'P': {
           const posizioniInizialiPedone =
             { 'B' :
@@ -283,13 +315,217 @@ case 'partita': {
               , "9" : 0
               }
             };
+          const celleMovibiliPedone =
+            { 'B' : [ { i : 0, j : -1 }, { i : 0, j : -2 } ]
+            , 'N' : [ { i : 0, j : +1 }, { i : 0, j : +2 } ]
+            };
+          const celleMangiabiliPedone =
+            { 'B' : [ { i : -1, j : 0 },{ i : +1, j : -1 } ]
+            , 'N' : [ { i : +1, j : 0 },{ i : -1, j : +1 } ]
+            };
           const posizioniIniziali = posizioniInizialiPedone[pezzo.colore];
-          if (i in posizioniIniziali && j == posizioniIniziali[i]) {
-            coloraBordoEsagono(i,j-2,'#6688ccff');
+          const celleMovibili     = celleMovibiliPedone[pezzo.colore];
+          const celleMangiabili   = celleMangiabiliPedone[pezzo.colore];
+          for(const o of celleMovibili){
+            const i0 = i + o.i;
+            const j0 = j + o.j;
+            if (!cellaLibera(i0,j0) || cellaFuoriTavola(i0,j0)) {
+              break;
+            }
+            coloraBordoEsagono(i0,j0, '#cccc00');
           }
-          coloraBordoEsagono(i,j-1,'#6688ccff');
-
+          for(const o of celleMangiabili){
+            const i0 = i + o.i;
+            const j0 = j + o.j;
+            if (!cellaLibera(i0,j0) && g.pezzi[i0][j0].colore != pezzo.colore) {
+              coloraBordoEsagono(i0,j0, '#cc0000');
+            }
+          }
         } break;
+
+        case 'A': {
+          var raggiMovimento =
+            [ coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            ]
+          for(var k = 1; 1; k++){
+            const i0 = i + 2 * k;
+            const j0 = j - k;
+            raggiMovimento[0] = raggiMovimento[0](i0,j0);
+            const i1 = i - 2 * k;
+            const j1 = j + k;
+            raggiMovimento[1] = raggiMovimento[1](i1,j1);
+            const i2 = i - k;
+            const j2 = j - k;
+            raggiMovimento[2] = raggiMovimento[2](i2,j2);
+            const i3 = i + k;
+            const j3 = j + k;
+            raggiMovimento[3] = raggiMovimento[3](i3,j3);
+            const i4 = i - k;
+            const j4 = j + 2 * k;
+            raggiMovimento[4] = raggiMovimento[4](i4,j4);
+            const i5 = i + k;
+            const j5 = j - 2 * k;
+            raggiMovimento[5] = raggiMovimento[5](i5,j5);
+            if (raggiMovimento.reduce((a,b)=>a && (b == noOp),1)) {
+              break;
+            }
+          }
+        } break;
+
+        case 'T': {
+          var raggiMovimento =
+            [ coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            ]
+          for(var k = 1; 1; k++){
+            const i0 = i + k;
+            const j0 = j;
+            raggiMovimento[0] = raggiMovimento[0](i0,j0);
+            const i1 = i - k;
+            const j1 = j;
+            raggiMovimento[1] = raggiMovimento[1](i1,j1);
+            const i2 = i;
+            const j2 = j - k;
+            raggiMovimento[2] = raggiMovimento[2](i2,j2);
+            const i3 = i;
+            const j3 = j + k;
+            raggiMovimento[3] = raggiMovimento[3](i3,j3);
+            const i4 = i - k;
+            const j4 = j + k;
+            raggiMovimento[4] = raggiMovimento[4](i4,j4);
+            const i5 = i + k;
+            const j5 = j - k;
+            raggiMovimento[5] = raggiMovimento[5](i5,j5);
+            if (raggiMovimento.reduce((a,b)=>a && (b == noOp),1)) {
+              break;
+            }
+          }
+        } break;
+
+        case 'R': {
+            const k = 1;
+            const i0 = i + k;
+            const j0 = j;
+            coloraCellaMovimento(i0,j0);
+            const i1 = i - k;
+            const j1 = j;
+            coloraCellaMovimento(i1,j1);
+            const i2 = i;
+            const j2 = j - k;
+            coloraCellaMovimento(i2,j2);
+            const i3 = i;
+            const j3 = j + k;
+            coloraCellaMovimento(i3,j3);
+            const i4 = i - k;
+            const j4 = j + k;
+            coloraCellaMovimento(i4,j4);
+            const i5 = i + k;
+            const j5 = j - k;
+            coloraCellaMovimento(i5,j5);
+            const i6 = i + 2 * k;
+            const j6 = j - k;
+            coloraCellaMovimento(i6,j6);
+            const i7 = i - 2 * k;
+            const j7 = j + k;
+            coloraCellaMovimento(i7,j7);
+            const i8 = i - k;
+            const j8 = j - k;
+            coloraCellaMovimento(i8,j8);
+            const i9 = i + k;
+            const j9 = j + k;
+            coloraCellaMovimento(i9,j9);
+            const iA = i - k;
+            const jA = j + 2 * k;
+            coloraCellaMovimento(iA,jA);
+            const iB = i + k;
+            const jB = j - 2 * k;
+            coloraCellaMovimento(iB,jB);
+        } break;
+
+        case 'D': {
+          var raggiMovimento =
+            [ coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            , coloraCellaMovimento
+            ]
+          const a = 10;
+          const b = 11;
+          for(var k = 1; 1; k++){
+            const i0 = i + k;
+            const j0 = j;
+            raggiMovimento[0] = raggiMovimento[0](i0,j0);
+            const i1 = i - k;
+            const j1 = j;
+            raggiMovimento[1] = raggiMovimento[1](i1,j1);
+            const i2 = i;
+            const j2 = j - k;
+            raggiMovimento[2] = raggiMovimento[2](i2,j2);
+            const i3 = i;
+            const j3 = j + k;
+            raggiMovimento[3] = raggiMovimento[3](i3,j3);
+            const i4 = i - k;
+            const j4 = j + k;
+            raggiMovimento[4] = raggiMovimento[4](i4,j4);
+            const i5 = i + k;
+            const j5 = j - k;
+            raggiMovimento[5] = raggiMovimento[5](i5,j5);
+            const i6 = i + 2 * k;
+            const j6 = j - k;
+            raggiMovimento[6] = raggiMovimento[6](i6,j6);
+            const i7 = i - 2 * k;
+            const j7 = j + k;
+            raggiMovimento[7] = raggiMovimento[7](i7,j7);
+            const i8 = i - k;
+            const j8 = j - k;
+            raggiMovimento[8] = raggiMovimento[8](i8,j8);
+            const i9 = i + k;
+            const j9 = j + k;
+            raggiMovimento[9] = raggiMovimento[9](i9,j9);
+            const ia = i - k;
+            const ja = j + 2 * k;
+            raggiMovimento[a] = raggiMovimento[a](ia,ja);
+            const ib = i + k;
+            const jb = j - 2 * k;
+            raggiMovimento[b] = raggiMovimento[b](ib,jb);
+            if (raggiMovimento.reduce((a,b)=>a && (b == noOp),1)) {
+              break;
+            }
+          }
+        } break;
+
+        case 'C': {
+            coloraCellaMovimento(i - 1,j - 2);
+            coloraCellaMovimento(i + 1,j - 3);
+            coloraCellaMovimento(i + 2,j - 3);
+            coloraCellaMovimento(i + 3,j - 2);
+            coloraCellaMovimento(i + 3,j - 1);
+            coloraCellaMovimento(i + 2,j + 1);
+            coloraCellaMovimento(i + 1,j + 2);
+            coloraCellaMovimento(i - 1,j + 3);
+            coloraCellaMovimento(i - 2,j + 3);
+            coloraCellaMovimento(i - 3,j + 2);
+            coloraCellaMovimento(i - 3,j + 1);
+            coloraCellaMovimento(i - 2,j - 1);
+        } break;
+
       }
 
     }
@@ -346,12 +582,12 @@ c.addEventListener('mousedown', function(e) {
         g.ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
         if ('B' == pezzo.colore) {
           // BIANCO
-          g.ctx.fillStyle   = '#cccccc';
-          g.ctx.strokeStyle = '#444444';
+          g.ctx.fillStyle   = '#dddddd';
+          g.ctx.strokeStyle = '#222222';
         } else {
           // NERO
-          g.ctx.fillStyle   = '#444444';
-          g.ctx.strokeStyle = '#cccccc';
+          g.ctx.fillStyle   = '#222222';
+          g.ctx.strokeStyle = '#dddddd';
         }
 
         g.ctx.beginPath();
