@@ -233,17 +233,33 @@ case 'partita': {
       return vertici;
     }
 
-    function selezionaPezzo(x,y){
-      const [i,j] = idxByPos(x,y);
+    function spostaVerticale(i,j,o){
+      return [i,j + o];
+    }
+    function spostaAscendente(i,j,o){
+      return [i + o,j];
+    }
+    function spostaDiscendente(i,j,o){
+      return [i + o,j - o];
+    }
+    function spostaDiagonaleOrizzontale(i,j,o){
+      return [i + 2 * o,j - o];
+    }
+    function spostaDiagonaleAscendente(i,j,o){
+      return [i + o,j + o];
+    }
+    function spostaDiagonaleDiscendente(i,j,o){
+      return [i + o,j - 2 * o];
+    }
+    
 
+    function selezionaPezzo(x,y){
       function cellaFuoriTavola(i,j){
           return 10 < j || 10 < i || j < 0 || i < 0 || (j < 5 && (i < 5 - j)) || (5 < j && ((15 - j) < i));
       }
-
       function cellaLibera(i,j){
         return !(i in g.pezzi) || !(j in g.pezzi[i]);
       }
-
       function coloraBordoEsagono(i,j,colore){
         const v = verticiEsagono(i,j);
         g.ctx.lineWidth = 6;
@@ -254,66 +270,53 @@ case 'partita': {
         g.ctx.closePath();
         g.ctx.stroke();
       }
-
-      function noOp() { return noOp; }
-
-      function coloraCellaMovimento(i,j){
+      function coloraCellaMovimento([i,j]){
         const cellaOccupata = !cellaLibera(i,j)
         if (cellaFuoriTavola(i,j) || (cellaOccupata && g.pezzi[i][j].colore == pezzo.colore)) {
-          return noOp;
+          return 0;
         }
         if (cellaOccupata) {
           coloraBordoEsagono(i,j, '#cc0000');
-          return noOp;
+          return 0;
         } 
         coloraBordoEsagono(i,j, '#cccc00');
-        return coloraCellaMovimento;
+        return 1;
+      }
+      function applicaMovimenti(i,j,movimenti){
+        for(var k = 1; k < 64; k++) {
+          var movimentiValidi = 0;
+          for(var loopCounter = 0; loopCounter < movimenti.length; loopCounter++){
+            const m = movimenti[loopCounter];
+            const p = m.p && coloraCellaMovimento(m.m(i,j,k*m.d));
+            movimenti[loopCounter].p = p;
+            movimentiValidi += p;
+          }
+          if (!movimentiValidi) {
+            return;
+          }
+        }
       }
 
-      if(cellaFuoriTavola(i,j)) {
-        return;
-      }
-      
-      const pezzoAlleCoordinate = i in g.pezzi && j in g.pezzi[i];
-      if (!pezzoAlleCoordinate){
+      const [i,j] = idxByPos(x,y);
+
+      if(cellaFuoriTavola(i,j) || cellaLibera(i,j)) {
         return;
       }
 
       const pezzo = g.pezzi[i][j];
+
       if(g.giocatore.value != pezzo.colore){
         return;
       }
       
-
-    
       coloraBordoEsagono(i,j,'#6688ccff');
 
       switch (pezzo.nome) {
 
         case 'P': {
           const posizioniInizialiPedone =
-            { 'B' :
-              { "1" : 10
-              , "2" :  9
-              , "3" :  8
-              , "4" :  7
-              , "5" :  6
-              , "6" :  6
-              , "7" :  6
-              , "8" :  6
-              , "9" :  6
-              }
-            , 'N' :
-              { "1" : 4
-              , "2" : 4
-              , "3" : 4
-              , "4" : 4
-              , "5" : 4
-              , "6" : 3
-              , "7" : 2
-              , "8" : 1
-              , "9" : 0
-              }
+            { 'B' : { "1" : 10, "2" : 9, "3" : 8, "4" : 7, "5" : 6, "6" : 6, "7" : 6, "8" : 6, "9" : 6 }
+            , 'N' : { "1" :  4, "2" : 4, "3" : 4, "4" : 4, "5" : 4, "6" : 3, "7" : 2, "8" : 1, "9" : 0 }
             };
           const celleMovibiliPedone =
             { 'B' : [ { i : 0, j : -1 }, { i : 0, j : -2 } ]
@@ -344,186 +347,84 @@ case 'partita': {
         } break;
 
         case 'A': {
-          var raggiMovimento =
-            [ coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
+          const movimenti =
+            [ { p : 1, d : -1, m : spostaDiagonaleOrizzontale }
+            , { p : 1, d : +1, m : spostaDiagonaleOrizzontale }
+            , { p : 1, d : -1, m : spostaDiagonaleAscendente  }
+            , { p : 1, d : +1, m : spostaDiagonaleAscendente  }
+            , { p : 1, d : -1, m : spostaDiagonaleDiscendente }
+            , { p : 1, d : +1, m : spostaDiagonaleDiscendente }
             ]
-          for(var k = 1; 1; k++){
-            const i0 = i + 2 * k;
-            const j0 = j - k;
-            raggiMovimento[0] = raggiMovimento[0](i0,j0);
-            const i1 = i - 2 * k;
-            const j1 = j + k;
-            raggiMovimento[1] = raggiMovimento[1](i1,j1);
-            const i2 = i - k;
-            const j2 = j - k;
-            raggiMovimento[2] = raggiMovimento[2](i2,j2);
-            const i3 = i + k;
-            const j3 = j + k;
-            raggiMovimento[3] = raggiMovimento[3](i3,j3);
-            const i4 = i - k;
-            const j4 = j + 2 * k;
-            raggiMovimento[4] = raggiMovimento[4](i4,j4);
-            const i5 = i + k;
-            const j5 = j - 2 * k;
-            raggiMovimento[5] = raggiMovimento[5](i5,j5);
-            if (raggiMovimento.reduce((a,b)=>a && (b == noOp),1)) {
-              break;
-            }
-          }
+            applicaMovimenti(i,j,movimenti);
         } break;
 
         case 'T': {
-          var raggiMovimento =
-            [ coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
+          const movimenti =
+            [ { p : 1, d : -1, m : spostaVerticale   }
+            , { p : 1, d : +1, m : spostaVerticale   }
+            , { p : 1, d : -1, m : spostaAscendente  }
+            , { p : 1, d : +1, m : spostaAscendente  }
+            , { p : 1, d : -1, m : spostaDiscendente }
+            , { p : 1, d : +1, m : spostaDiscendente }
             ]
-          for(var k = 1; 1; k++){
-            const i0 = i + k;
-            const j0 = j;
-            raggiMovimento[0] = raggiMovimento[0](i0,j0);
-            const i1 = i - k;
-            const j1 = j;
-            raggiMovimento[1] = raggiMovimento[1](i1,j1);
-            const i2 = i;
-            const j2 = j - k;
-            raggiMovimento[2] = raggiMovimento[2](i2,j2);
-            const i3 = i;
-            const j3 = j + k;
-            raggiMovimento[3] = raggiMovimento[3](i3,j3);
-            const i4 = i - k;
-            const j4 = j + k;
-            raggiMovimento[4] = raggiMovimento[4](i4,j4);
-            const i5 = i + k;
-            const j5 = j - k;
-            raggiMovimento[5] = raggiMovimento[5](i5,j5);
-            if (raggiMovimento.reduce((a,b)=>a && (b == noOp),1)) {
-              break;
-            }
-          }
-        } break;
-
-        case 'R': {
-            const k = 1;
-            const i0 = i + k;
-            const j0 = j;
-            coloraCellaMovimento(i0,j0);
-            const i1 = i - k;
-            const j1 = j;
-            coloraCellaMovimento(i1,j1);
-            const i2 = i;
-            const j2 = j - k;
-            coloraCellaMovimento(i2,j2);
-            const i3 = i;
-            const j3 = j + k;
-            coloraCellaMovimento(i3,j3);
-            const i4 = i - k;
-            const j4 = j + k;
-            coloraCellaMovimento(i4,j4);
-            const i5 = i + k;
-            const j5 = j - k;
-            coloraCellaMovimento(i5,j5);
-            const i6 = i + 2 * k;
-            const j6 = j - k;
-            coloraCellaMovimento(i6,j6);
-            const i7 = i - 2 * k;
-            const j7 = j + k;
-            coloraCellaMovimento(i7,j7);
-            const i8 = i - k;
-            const j8 = j - k;
-            coloraCellaMovimento(i8,j8);
-            const i9 = i + k;
-            const j9 = j + k;
-            coloraCellaMovimento(i9,j9);
-            const iA = i - k;
-            const jA = j + 2 * k;
-            coloraCellaMovimento(iA,jA);
-            const iB = i + k;
-            const jB = j - 2 * k;
-            coloraCellaMovimento(iB,jB);
+            applicaMovimenti(i,j,movimenti);
         } break;
 
         case 'D': {
-          var raggiMovimento =
-            [ coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
-            , coloraCellaMovimento
+          const movimenti =
+            [ { p : 1, d : -1, m : spostaVerticale            }
+            , { p : 1, d : +1, m : spostaVerticale            }
+            , { p : 1, d : -1, m : spostaAscendente           }
+            , { p : 1, d : +1, m : spostaAscendente           }
+            , { p : 1, d : -1, m : spostaDiscendente          }
+            , { p : 1, d : +1, m : spostaDiscendente          }
+            , { p : 1, d : -1, m : spostaDiagonaleOrizzontale }
+            , { p : 1, d : +1, m : spostaDiagonaleOrizzontale }
+            , { p : 1, d : -1, m : spostaDiagonaleAscendente  }
+            , { p : 1, d : +1, m : spostaDiagonaleAscendente  }
+            , { p : 1, d : -1, m : spostaDiagonaleDiscendente }
+            , { p : 1, d : +1, m : spostaDiagonaleDiscendente }
             ]
-          const a = 10;
-          const b = 11;
-          for(var k = 1; 1; k++){
-            const i0 = i + k;
-            const j0 = j;
-            raggiMovimento[0] = raggiMovimento[0](i0,j0);
-            const i1 = i - k;
-            const j1 = j;
-            raggiMovimento[1] = raggiMovimento[1](i1,j1);
-            const i2 = i;
-            const j2 = j - k;
-            raggiMovimento[2] = raggiMovimento[2](i2,j2);
-            const i3 = i;
-            const j3 = j + k;
-            raggiMovimento[3] = raggiMovimento[3](i3,j3);
-            const i4 = i - k;
-            const j4 = j + k;
-            raggiMovimento[4] = raggiMovimento[4](i4,j4);
-            const i5 = i + k;
-            const j5 = j - k;
-            raggiMovimento[5] = raggiMovimento[5](i5,j5);
-            const i6 = i + 2 * k;
-            const j6 = j - k;
-            raggiMovimento[6] = raggiMovimento[6](i6,j6);
-            const i7 = i - 2 * k;
-            const j7 = j + k;
-            raggiMovimento[7] = raggiMovimento[7](i7,j7);
-            const i8 = i - k;
-            const j8 = j - k;
-            raggiMovimento[8] = raggiMovimento[8](i8,j8);
-            const i9 = i + k;
-            const j9 = j + k;
-            raggiMovimento[9] = raggiMovimento[9](i9,j9);
-            const ia = i - k;
-            const ja = j + 2 * k;
-            raggiMovimento[a] = raggiMovimento[a](ia,ja);
-            const ib = i + k;
-            const jb = j - 2 * k;
-            raggiMovimento[b] = raggiMovimento[b](ib,jb);
-            if (raggiMovimento.reduce((a,b)=>a && (b == noOp),1)) {
-              break;
+            applicaMovimenti(i,j,movimenti);
+        } break;
+
+        case 'R': {
+          const movimenti =
+            [ { p : 1, d : -1, m : spostaVerticale            }
+            , { p : 1, d : +1, m : spostaVerticale            }
+            , { p : 1, d : -1, m : spostaAscendente           }
+            , { p : 1, d : +1, m : spostaAscendente           }
+            , { p : 1, d : -1, m : spostaDiscendente          }
+            , { p : 1, d : +1, m : spostaDiscendente          }
+            , { p : 1, d : -1, m : spostaDiagonaleOrizzontale }
+            , { p : 1, d : +1, m : spostaDiagonaleOrizzontale }
+            , { p : 1, d : -1, m : spostaDiagonaleAscendente  }
+            , { p : 1, d : +1, m : spostaDiagonaleAscendente  }
+            , { p : 1, d : -1, m : spostaDiagonaleDiscendente }
+            , { p : 1, d : +1, m : spostaDiagonaleDiscendente }
+            ]
+            function applicaMovimentiRe(m){
+              const cella = m.m(i,j,m.d);
+              if(1){
+                coloraCellaMovimento(cella);
+              }
             }
-          }
+            movimenti.forEach(applicaMovimentiRe);
         } break;
 
         case 'C': {
-            coloraCellaMovimento(i - 1,j - 2);
-            coloraCellaMovimento(i + 1,j - 3);
-            coloraCellaMovimento(i + 2,j - 3);
-            coloraCellaMovimento(i + 3,j - 2);
-            coloraCellaMovimento(i + 3,j - 1);
-            coloraCellaMovimento(i + 2,j + 1);
-            coloraCellaMovimento(i + 1,j + 2);
-            coloraCellaMovimento(i - 1,j + 3);
-            coloraCellaMovimento(i - 2,j + 3);
-            coloraCellaMovimento(i - 3,j + 2);
-            coloraCellaMovimento(i - 3,j + 1);
-            coloraCellaMovimento(i - 2,j - 1);
+            coloraCellaMovimento([i - 1,j - 2]);
+            coloraCellaMovimento([i + 1,j - 3]);
+            coloraCellaMovimento([i + 2,j - 3]);
+            coloraCellaMovimento([i + 3,j - 2]);
+            coloraCellaMovimento([i + 3,j - 1]);
+            coloraCellaMovimento([i + 2,j + 1]);
+            coloraCellaMovimento([i + 1,j + 2]);
+            coloraCellaMovimento([i - 1,j + 3]);
+            coloraCellaMovimento([i - 2,j + 3]);
+            coloraCellaMovimento([i - 3,j + 2]);
+            coloraCellaMovimento([i - 3,j + 1]);
+            coloraCellaMovimento([i - 2,j - 1]);
         } break;
 
       }
