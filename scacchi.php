@@ -429,7 +429,7 @@ case 'partita': {
       return [i + 2 * o,j - 3 * o];
     }
     function spostaCavalloDiscendenteMedia(i,j,o){
-    return [i + 3 * o,j - 2 * o];
+      return [i + 3 * o,j - 2 * o];
     }
     function spostaPedoneVerticale(i,j,o){
       const iniziali =
