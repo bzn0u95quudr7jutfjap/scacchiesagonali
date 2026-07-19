@@ -317,8 +317,13 @@ foreach(
 , ['PNAAFE-RBAAJG-', 'p nemico: mov init']
 , ['PNAAFE-TNAAEF-CBAAGE-CBAAFF-RBAAJG-', 'p nemico: cattura / alleato']
 , ['RBAAFG-PNAAFE-CNAAEF-', 're vs pedone nemico']
-, ['TBAAFF-TNAADF-RBAAHF-', 're in difesa']
-, ['TBAAFE-TNAADF-RBAAHF-', 're da difendere']
+, ['TBAAFF-TNAADF-RBAAHF-', 'torre in difesa del re']
+, ['TBAAFE-TNAADF-RBAAHF-', 'torre deve difendere il re']
+, ['PBAAFF-RBAAJG-', 'p: mov']
+, ['PBAAFG-RBAAJG-', 'p: mov init']
+, ['PBAAFG-CNAAEG-CBAAGF-CNAAFF-RBAAJG-', 'p: cattura alleato']
+, ['PBAAFG-TNAAEG-RBAAJG-', 'p in difesa del re']
+, ['PBAAFG-TNAAEF-RBAAKF-', 'p deve difendere il re']
 ] as $a){
 [$m,$n] = $a;
 echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
@@ -713,7 +718,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         var p1 = 0;
         p1 = p0 +  1; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
         possibili.push(p1);
-        p1 = p0 +  2; if (gPosInizialiPedoni[g.pezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p0 + 2); }
+        p1 = p0 +  2; if (gPosInizialiPedoni[g.pezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p1); }
         }
         p1 = p0 + 16; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
         p1 = p0 - 15; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
@@ -725,11 +730,11 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         var possibili = [];
         for(const m of mov){
           var direzione = [];
+          direzione.push(p0);
           for(var k = 1; k <= lim; k++){
             var p1 = p0 + m * k;
             if (cellaFuoriTavola(p1)) { break; }
             if (p1 in g.pezzi) {
-              // TODO salva anche le pos dei pezzi
               if (p1 == idxRe) { pezziScaccanti.push(direzione); break; }
               possibili.push(p1);
               if (g.pezzi[p1].at(1) != g.pezzi[p0].at(1)) {
@@ -754,7 +759,20 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         }
         g.movimenti[p0] = possibili;
       }
-      for(var po of pedoniAlleati) {
+      for(var p0 of pedoniAlleati) {
+        p0 = Number(p0);
+        var possibili = [];
+        var p1 = 0;
+        const c = g.pezzi[p0].at(1);
+        p1 = p0 -  1; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
+        possibili.push(p1);
+        p1 = p0 -  2; if (gPosInizialiPedoni[c].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p1); }
+        }
+        p1 = p0 + 15; if (p1 in g.pezzi && c != g.pezzi[p1].at(1)) { possibili.push(p1); }
+        p1 = p0 - 16; if (p1 in g.pezzi && c != g.pezzi[p1].at(1)) { possibili.push(p1); }
+        if (p0 in pezziADifesa) { possibili = possibili.filter(p1 => pezziADifesa[p0].includes(p1)); }
+        if (1 == pezziScaccanti.length) { possibili = possibili.filter(p1 => pezziScaccanti[0].includes(p1)); }
+        g.movimenti[p0] = possibili;
       }
       for(var p0 of pezziAlleati){
         if ( 1 < pezziScaccanti.length ) { break; }
