@@ -313,6 +313,10 @@ foreach(
 , ['ANAAFF-TBAAEE-TNAAGD-RBAAJG-', 'a nemico: cattura / alleato']
 , ['DNAAFF-TBAAFD-TNAAGD-RBAAJG-', 'd nemico: cattura / alleato']
 , ['RNAAFF-TBAAEE-TNAAGD-RBAAJG-', 'r nemico: cattura / alleato']
+, ['PNAAFF-RBAAJG-', 'p nemico: mov']
+, ['PNAAFE-RBAAJG-', 'p nemico: mov init']
+, ['PNAAFE-TNAAEF-CBAAGE-CBAAFF-RBAAJG-', 'p nemico: cattura / alleato']
+, ['RBAAFG-PNAAFE-CNAAEF-', 're vs pedone nemico']
 , ['TBAAFF-TNAADF-RBAAHF-', 're in difesa']
 , ['TBAAFE-TNAADF-RBAAHF-', 're da difendere']
 ] as $a){
@@ -323,6 +327,10 @@ echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
 </div>
     <script>
 
+const gPosInizialiPedoni = {
+  'N' : new Set([0x14,0x24,0x34,0x44,0x54,0x63,0x72,0x81,0x90])
+, 'B' : new Set([0x1a,0x29,0x38,0x47,0x56,0x66,0x76,0x86,0x96])
+};
 const gMovimentiPezzi = {
   'T' : [10, [-1,1,-16,16,-15,15]]
 , 'C' : [ 1, [-13,13,-18,18,-33,33,-47,47,-46,46,-29,29]]
@@ -699,7 +707,17 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           }
         }
       }
-      for(var po of pedoniNemici) {
+      for(var p0 of pedoniNemici) {
+        p0 = Number(p0);
+        var possibili = [];
+        var p1 = 0;
+        p1 = p0 +  1; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
+        possibili.push(p1);
+        p1 = p0 +  2; if (gPosInizialiPedoni[g.pezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p0 + 2); }
+        }
+        p1 = p0 + 16; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+        p1 = p0 - 15; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+        g.movimenti[p0] = possibili;
       }
       for(var p0 of pezziNemici) {
         p0 = Number(p0);
