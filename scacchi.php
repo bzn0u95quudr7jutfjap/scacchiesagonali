@@ -199,6 +199,13 @@ case 'partita': {
 
       body { display : flex; }
 
+      div.d {
+        height: 400px;
+        display:flex;
+        flex-direction : column;
+        overflow : scroll;
+      }
+
       @media (max-width: 768px) {
         body { flex-direction : column; }
       }
@@ -245,8 +252,6 @@ case 'partita': {
       <button type=button onclick="setN(2, 8);"> 8</button>
       <button type=button onclick="setN(2, 9);"> 9</button>
       <button type=button onclick="setN(2,10);">10</button>
-      <button type=button onclick="setN(2,11);">11</button>
-      <button type=button onclick="setN(2,12);">12</button>
       <br>
       <label>da J:</label>
       <button type=button onclick="setN(3, 0);"> 0</button>
@@ -260,8 +265,6 @@ case 'partita': {
       <button type=button onclick="setN(3, 8);"> 8</button>
       <button type=button onclick="setN(3, 9);"> 9</button>
       <button type=button onclick="setN(3,10);">10</button>
-      <button type=button onclick="setN(3,11);">11</button>
-      <button type=button onclick="setN(3,12);">12</button>
       <br>
       <label>a I: </label>
       <button type=button onclick="setN(4, 0);"> 0</button>
@@ -275,8 +278,6 @@ case 'partita': {
       <button type=button onclick="setN(4, 8);"> 8</button>
       <button type=button onclick="setN(4, 9);"> 9</button>
       <button type=button onclick="setN(4,10);">10</button>
-      <button type=button onclick="setN(4,11);">11</button>
-      <button type=button onclick="setN(4,12);">12</button>
       <br>
       <label>a J: </label>
       <button type=button onclick="setN(5, 0);"> 0</button>
@@ -290,13 +291,46 @@ case 'partita': {
       <button type=button onclick="setN(5, 8);"> 8</button>
       <button type=button onclick="setN(5, 9);"> 9</button>
       <button type=button onclick="setN(5,10);">10</button>
-      <button type=button onclick="setN(5,11);">11</button>
-      <button type=button onclick="setN(5,12);">12</button>
       <br>
       <input type=submit value='muovi'>
     </form>
     <textarea id=cronologia readonly></textarea>
+<div class=d>
+<?php
+foreach(
+[ ['TBAAFF-TNAAEB-RBAAJG-', 't: mov']
+, ['CBAAFF-TNAAEB-RBAAJG-', 'c: mov']
+, ['ABAAFF-TNAAEB-RBAAJG-', 'a: mov']
+, ['DBAAFF-TNAAEB-RBAAJG-', 'd: mov']
+, ['RBAAFF-CNAAFA-TBAAJG-', 'r: mov']
+, ['TBAAFF-TNAAFD-RBAAEF-', 't: cattura / alleato']
+, ['CBAAFF-TNAAED-RBAAGC-', 'c: cattura / alleato']
+, ['ABAAFF-TNAAEE-RBAADG-', 'a: cattura / alleato']
+, ['DBAAFF-TNAAFD-RBAAEF-', 'd: cattura / alleato']
+, ['RBAAFF-TNAAEE-TBAADG-', 'r: cattura / alleato']
+, ['TNAAFF-TNAADF-TBAAFD-RBAAJG-', 't nemico: cattura / alleato']
+, ['CNAAFF-TBAAED-TNAAGC-RBAAJG-', 'c nemico: cattura / alleato']
+, ['ANAAFF-TBAAEE-TNAAGD-RBAAJG-', 'a nemico: cattura / alleato']
+, ['DNAAFF-TBAAFD-TNAAGD-RBAAJG-', 'd nemico: cattura / alleato']
+, ['RNAAFF-TBAAEE-TNAAGD-RBAAJG-', 'r nemico: cattura / alleato']
+, ['TBAAFF-TNAADF-RBAAHF-', 're in difesa']
+, ['TBAAFE-TNAADF-RBAAHF-', 're da difendere']
+] as $a){
+[$m,$n] = $a;
+echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
+}
+?>
+</div>
     <script>
+
+const gMovimentiPezzi = {
+  //'T' : [16, [-1,1,-16,16,-15,15]]
+  'T' : [10, [-1,1,-16,16,-15,15]]
+, 'C' : [ 1, [-13,13,-18,18,-33,33,-47,47,-46,46,-29,29]]
+, 'A' : [10, [-17,17,-14,14,-31,31]]
+, 'D' : [10, [-1,1,-16,16,-15,15,-17,17,-14,14,-31,31]]
+, 'R' : [ 1, [-1,1,-16,16,-15,15,-17,17,-14,14,-31,31]]
+};
 
     function debugLine(b,a,colore = '#ff0000'){
       g.ctx.lineWidth = 1;
@@ -397,15 +431,16 @@ case 'partita': {
           }
         }
 <?php } else if (3 == $debug) { ?>
-        txt = 'TBFFFF\nTNEBEB\n';
+txt = <?php echo json_encode($_GET['t']); ?>;
         cronologia.innerHTML = txt;
         eseguiMosse(txt);
         drawScacchiera();
         drawPezzi();
         updateMovimenti();
-        console.log(g.pezzi[0x55]);
-        for(const p of g.movimenti[0x55]){
-          coloraBordoEsagono(p,'#00ff00');
+        var p0 = (txt.charCodeAt(4) - 65) << 4 | (txt.charCodeAt(5) - 65);
+        const colore = g.pezzi[p0].at(1) == g.giocatore.value ? '#00ff00' : '#ff0000';
+        for(const p of g.movimenti[p0]){
+          coloraBordoEsagono(p,colore);
         }
 <?php } else { ?>
         cronologia.innerHTML = txt;
@@ -573,93 +608,6 @@ case 'partita': {
       }
     }
 
-    function movimentiPezzo(pezzo){
-      var limite = 0;
-      var movimenti = [];
-      switch (pezzo.at(0)) {
-        case 'P': {
-          const direzione = ('B' == pezzo.at(1)) ? (-1) : (1);
-          limite = 4;
-          movimenti =
-            [ { d : +direzione, m : spostaPedone   }
-            ]
-        } break;
-        case 'A': {
-          limite = -1;
-          movimenti =
-            [ { d : -1, m : spostaDiagonaleOrizzontale }
-            , { d : +1, m : spostaDiagonaleOrizzontale }
-            , { d : -1, m : spostaDiagonaleAscendente  }
-            , { d : +1, m : spostaDiagonaleAscendente  }
-            , { d : -1, m : spostaDiagonaleDiscendente }
-            , { d : +1, m : spostaDiagonaleDiscendente }
-            ]
-        } break;
-        case 'T': {
-          limite = -1;
-          movimenti =
-            [ { d : -1, m : spostaVerticale   }
-            , { d : +1, m : spostaVerticale   }
-            , { d : -1, m : spostaAscendente  }
-            , { d : +1, m : spostaAscendente  }
-            , { d : -1, m : spostaDiscendente }
-            , { d : +1, m : spostaDiscendente }
-            ]
-        } break;
-        case 'D': {
-          limite = -1;
-          movimenti =
-            [ { d : -1, m : spostaVerticale            }
-            , { d : +1, m : spostaVerticale            }
-            , { d : -1, m : spostaAscendente           }
-            , { d : +1, m : spostaAscendente           }
-            , { d : -1, m : spostaDiscendente          }
-            , { d : +1, m : spostaDiscendente          }
-            , { d : -1, m : spostaDiagonaleOrizzontale }
-            , { d : +1, m : spostaDiagonaleOrizzontale }
-            , { d : -1, m : spostaDiagonaleAscendente  }
-            , { d : +1, m : spostaDiagonaleAscendente  }
-            , { d : -1, m : spostaDiagonaleDiscendente }
-            , { d : +1, m : spostaDiagonaleDiscendente }
-            ];
-        } break;
-        case 'R': {
-          limite = 1;
-          movimenti =
-            [ { d : -1, m : spostaVerticale            }
-            , { d : +1, m : spostaVerticale            }
-            , { d : -1, m : spostaAscendente           }
-            , { d : +1, m : spostaAscendente           }
-            , { d : -1, m : spostaDiscendente          }
-            , { d : +1, m : spostaDiscendente          }
-            , { d : -1, m : spostaDiagonaleOrizzontale }
-            , { d : +1, m : spostaDiagonaleOrizzontale }
-            , { d : -1, m : spostaDiagonaleAscendente  }
-            , { d : +1, m : spostaDiagonaleAscendente  }
-            , { d : -1, m : spostaDiagonaleDiscendente }
-            , { d : +1, m : spostaDiagonaleDiscendente }
-            ]
-        } break;
-        case 'C': {
-          limite = 1;
-          movimenti =
-            [ { d : +1, m : spostaCavalloAscendenteRipida  }
-            , { d : -1, m : spostaCavalloAscendenteRipida  }
-            , { d : +1, m : spostaCavalloAscendentePiana   }
-            , { d : -1, m : spostaCavalloAscendentePiana   }
-            , { d : +1, m : spostaCavalloAscendenteMedia   }
-            , { d : -1, m : spostaCavalloAscendenteMedia   }
-            , { d : +1, m : spostaCavalloDiscendenteRipida }
-            , { d : -1, m : spostaCavalloDiscendenteRipida }
-            , { d : +1, m : spostaCavalloDiscendentePiana  }
-            , { d : -1, m : spostaCavalloDiscendentePiana  }
-            , { d : +1, m : spostaCavalloDiscendenteMedia  }
-            , { d : -1, m : spostaCavalloDiscendenteMedia  }
-            ];
-        } break;
-      }
-      return [limite, movimenti];
-    }
 
     function aggiornaUltimaMossa(){
       if (undefined == this.i) { this.i = 0; };
@@ -818,210 +766,279 @@ case 'partita': {
       g.movimenti = {};
       g.pezziDifesi = [];
       g.pezziScaccabili = {};
+      var movimentiNemici = new Set();
+      var pezziScaccanti = [];
+      var pezziADifesa = {};
       var pezziNemici  = [];
       var pezziAlleati = [];
-      var idxRe = [];
+      var idxRe = 0;
       for(var pos of Object.keys(g.pezzi)){
         var pezzo = g.pezzi[pos];
         if(pezzo.at(1) != g.giocatore.value){
           pezziNemici.push(pos);
         }else if('R' == pezzo.at(0)){
-          idxRe.push(pos);
+          idxRe = pos;
         }else{
           pezziAlleati.push(pos);
         }
       }
-      function erranteNemico(pos,limite,movimenti,possibili){
-<?php if (1 == $debug) { ?>
-coloraBordoEsagono(pos,'#ff0000');
-<?php } ?>
-        const massimo = 256;
-        limite = ((((limite) % massimo) + massimo) % massimo) + 1;
-        for(const {m:m, d:d} of movimenti){
-          var consentite = [];
-          consentite.push(pos);
-          for(var k = 1; k < limite; k++){
-            var i = (pos & 0xf0) >> 4;
-            var j = (pos & 0xf);
-            [i,j] = m(i,j,d*k);
-            i = (i != (i & 0xf)) * i;
-            j = (j != (j & 0xf)) * j;
-            const cella = ((i << 4) & 0xf0) | (j&0xf);
-            if(cellaFuoriTavola(cella)){
-              break;
-            } else if(cellaLibera(cella)){
-              possibili.push(cella);
-              consentite.push(cella);
-              continue;
-            }else if(g.pezzi[pos].at(1) == g.pezzi[cella]){
-              g.pezziDifesi.push(cella);
-              break;
-            }else if(cella in idxRe){
-              g.scacco = cella;
-              break;
-            }else{
-              possibili.push(cella);
-              for(l = k+1; l < limite; l++){
-                const minaccia = m(pos,d*l);
-                if(cellaFuoriTavola(minaccia)){
-                  break;
-                } else if (cellaLibera(minaccia)) {
-                  consentite.push(minaccia);
-                  continue;
-                } else {
-                  if (minaccia in idxRe) {
-                    const pezzoScaccabile = {pezzo:pos,consentite:consentite};
-                    g.pezziScaccabili[cella] = pezzoScaccabile;
-                  }
-                  break;
-                }
-              }
-              break;
-            }
-          }
-        }
-<?php if (1 == $debug) { ?>
-for (const p in possibili) {
- debugPezzoMov(p,pos,'#ff0000');
-}
-<?php } ?>
-      }
-      function erranteAlleato(pos,limite,movimenti,possibili){
-<?php if (1 == $debug) { ?>
-coloraBordoEsagono(pos,'#0000ff');
-<?php } ?>
-        var potenzialiPossibili = [];
-        const massimo = 256;
-        limite = ((((limite) % massimo) + massimo) % massimo) + 1;
-        for(const {m:m, d:d} of movimenti){
-          for(var k = 1; k < limite; k++){
-            var i = (pos & 0xf0) >> 4;
-            var j = (pos & 0xf);
-            [i,j] = m(i,j,d*k);
-            i = (i != (i & 0xf)) * i;
-            j = (j != (j & 0xf)) * j;
-            const pos0 = ((i << 4) & 0xf0) | (j&0xf);
-            if(cellaFuoriTavola(pos0)){
-              break;
-            } else if(cellaLibera(pos0)){
-              potenzialiPossibili.push(pos0);
-              continue;
-            } else if(g.pezzi[pos0].at(1) != g.pezzi[pos].at(1)){
-              potenzialiPossibili.push(pos0);
-              break;
-            } else {
-              break;
-            }
-          }
-        }
-        if (null != g.scacco || (pos in g.pezziScaccabili)) {
-          const {cella:minacciante, consentite:consentite} = g.pezziScaccabili[pos];
-          potenzialiPossibili = consentite.filter(c => c in potenzialiPossibili);
-        }
-        for(const c of potenzialiPossibili){
-          possibili.push(c);
-        }
-<?php if (1 == $debug) { ?>
-for (const p in possibili) {
- debugPezzoMov(p,pos,'#0000ff');
-}
-<?php } ?>
-      }
-      function erranteRe(pos,limite,movimenti,possibili){
-<?php if (1 == $debug) { ?>
-coloraBordoEsagono(pos,'#00ff00');
-<?php } ?>
-        const massimo = 256;
-        limite = ((((limite) % massimo) + massimo) % massimo) + 1;
-        for(const {m:m, d:d} of movimenti){
-          for(var k = 1; k < limite; k++){
-            var i = (pos & 0xf0) >> 4;
-            var j = (pos & 0xf);
-            [i,j] = m(i,j,d*k);
-            i = (i != (i & 0xf)) * i;
-            j = (j != (j & 0xf)) * j;
-            const pos0 = ((i << 4) & 0xf0) | (j&0xf);
-            if(cellaFuoriTavola(pos0)){
-              break;
-            } else if(pos0 in celleMovimentiNemici && 0 < celleMovimentiNemici[pos0]){
-              break;
-            } else if(cellaLibera(pos0)){
-              possibili.push(pos0);
-              continue;
-            } else if(g.pezzi[pos0].at(1) != g.pezzi[pos].at(1)){
-              possibili.push(pos0);
-              break;
-            } else {
-              break;
-            }
-          }
-        }
-<?php if (1 == $debug) { ?>
-for (const p in possibili) {
- debugPezzoMov(p,pos,'#00ff00');
-}
-<?php } ?>
-      }
-      var celleMovimentiNemici = {};
-      for(const pos of pezziNemici){
-<?php if (1 == $debug) { ?> coloraBordoEsagono(pos,'#ff0000'); <?php } ?>
+
+//       function erranteNemico(pos,limite,movimenti,possibili){
+// <?php if (1 == $debug) { ?>
+// coloraBordoEsagono(pos,'#ff0000');
+// <?php } ?>
+//         const massimo = 256;
+//         limite = ((((limite) % massimo) + massimo) % massimo) + 1;
+//         for(const {m:m, d:d} of movimenti){
+//           var consentite = [];
+//           consentite.push(pos);
+//           for(var k = 1; k < limite; k++){
+//             var i = (pos & 0xf0) >> 4;
+//             var j = (pos & 0xf);
+//             [i,j] = m(i,j,d*k);
+//             i = (i != (i & 0xf)) * i;
+//             j = (j != (j & 0xf)) * j;
+//             const cella = ((i << 4) & 0xf0) | (j&0xf);
+//             if(cellaFuoriTavola(cella)){
+//               break;
+//             } else if(cellaLibera(cella)){
+//               possibili.push(cella);
+//               consentite.push(cella);
+//               continue;
+//             }else if(g.pezzi[pos].at(1) == g.pezzi[cella]){
+//               g.pezziDifesi.push(cella);
+//               break;
+//             }else if(cella in idxRe){
+//               g.scacco = cella;
+//               break;
+//             }else{
+//               possibili.push(cella);
+//               for(l = k+1; l < limite; l++){
+//                 const minaccia = m(pos,d*l);
+//                 if(cellaFuoriTavola(minaccia)){
+//                   break;
+//                 } else if (cellaLibera(minaccia)) {
+//                   consentite.push(minaccia);
+//                   continue;
+//                 } else {
+//                   if (minaccia in idxRe) {
+//                     const pezzoScaccabile = {pezzo:pos,consentite:consentite};
+//                     g.pezziScaccabili[cella] = pezzoScaccabile;
+//                   }
+//                   break;
+//                 }
+//               }
+//               break;
+//             }
+//           }
+//         }
+// <?php if (1 == $debug) { ?>
+// for (const p in possibili) {
+//  debugPezzoMov(p,pos,'#ff0000');
+// }
+// <?php } ?>
+//       }
+//       function erranteAlleato(pos,limite,movimenti,possibili){
+// <?php if (1 == $debug) { ?>
+// coloraBordoEsagono(pos,'#0000ff');
+// <?php } ?>
+//         var potenzialiPossibili = [];
+//         const massimo = 256;
+//         limite = ((((limite) % massimo) + massimo) % massimo) + 1;
+//         for(const {m:m, d:d} of movimenti){
+//           for(var k = 1; k < limite; k++){
+//             var i = (pos & 0xf0) >> 4;
+//             var j = (pos & 0xf);
+//             [i,j] = m(i,j,d*k);
+//             i = (i != (i & 0xf)) * i;
+//             j = (j != (j & 0xf)) * j;
+//             const pos0 = ((i << 4) & 0xf0) | (j&0xf);
+//             if(cellaFuoriTavola(pos0)){
+//               break;
+//             } else if(cellaLibera(pos0)){
+//               potenzialiPossibili.push(pos0);
+//               continue;
+//             } else if(g.pezzi[pos0].at(1) != g.pezzi[pos].at(1)){
+//               potenzialiPossibili.push(pos0);
+//               break;
+//             } else {
+//               break;
+//             }
+//           }
+//         }
+//         if (null != g.scacco || (pos in g.pezziScaccabili)) {
+//           const {cella:minacciante, consentite:consentite} = g.pezziScaccabili[pos];
+//           potenzialiPossibili = consentite.filter(c => c in potenzialiPossibili);
+//         }
+//         for(const c of potenzialiPossibili){
+//           possibili.push(c);
+//         }
+// <?php if (1 == $debug) { ?>
+// for (const p in possibili) {
+//  debugPezzoMov(p,pos,'#0000ff');
+// }
+// <?php } ?>
+//       }
+//       function erranteRe(pos,limite,movimenti,possibili){
+// <?php if (1 == $debug) { ?>
+// coloraBordoEsagono(pos,'#00ff00');
+// <?php } ?>
+//         const massimo = 256;
+//         limite = ((((limite) % massimo) + massimo) % massimo) + 1;
+//         for(const {m:m, d:d} of movimenti){
+//           for(var k = 1; k < limite; k++){
+//             var i = (pos & 0xf0) >> 4;
+//             var j = (pos & 0xf);
+//             [i,j] = m(i,j,d*k);
+//             i = (i != (i & 0xf)) * i;
+//             j = (j != (j & 0xf)) * j;
+//             const pos0 = ((i << 4) & 0xf0) | (j&0xf);
+//             if(cellaFuoriTavola(pos0)){
+//               break;
+//             } else if(pos0 in celleMovimentiNemici && 0 < celleMovimentiNemici[pos0]){
+//               break;
+//             } else if(cellaLibera(pos0)){
+//               possibili.push(pos0);
+//               continue;
+//             } else if(g.pezzi[pos0].at(1) != g.pezzi[pos].at(1)){
+//               possibili.push(pos0);
+//               break;
+//             } else {
+//               break;
+//             }
+//           }
+//         }
+// <?php if (1 == $debug) { ?>
+// for (const p in possibili) {
+//  debugPezzoMov(p,pos,'#00ff00');
+// }
+// <?php } ?>
+//       }
+//       var celleMovimentiNemici = {};
+//       for(const pos of pezziNemici){
+// <?php if (1 == $debug) { ?> coloraBordoEsagono(pos,'#ff0000'); <?php } ?>
+//         var possibili = [];
+//         var consentite = [];
+//         const [l,movs] = movimentiPezzo(g.pezzi[pos]);
+//         for(const {d:d,m:m} of movs){
+//           for(var o = 0; o < l; o++){
+//             var [i,j] = [(pos&0xf0)>>4,(pos&0xf)];
+//             [i,j] = m(i,j,d*(1+o));
+//             i *= (0 <= i && i < 12);
+//             j *= (0 <= j && j < 12);
+//             const p0 = (((i) & 0xf) << 4) | ((j) & 0xf);
+//             if (cellaFuoriTavola(p0)) {
+//               break;
+//             } else if (p0 in g.pezzi) {
+//               if (g.pezzi[p0].at(1) == g.pezzi[pos].at(1)) {
+//                 g.pezziDifesi.push(p0);
+//               } else if (p0 in idxRe) {
+//                 g.scacco = p0;
+//               } else {
+//                 possibili.push(p0);
+//                 for(o = o+1; o < l; o++){
+//                   const minaccia = m(pos,d*o);
+//                   if(cellaFuoriTavola(minaccia)){
+//                     break;
+//                   } else if (minaccia in g.pezzi) {
+//                     if (minaccia in idxRe) {
+//                       g.pezziScaccabili[cella] = [pos,consentite];
+//                     }
+//                     break;
+//                   } else {
+//                     consentite.push(minaccia);
+//                     continue;
+//                   }
+//                 }
+//                 break;
+//               }
+//             } else {
+//               possibili.push(p0);
+//               consentite.push(p0);
+//             }
+//           }
+//         }
+//         g.movimenti[pos] = possibili;
+//         for(const pos of possibili){
+//           if(!(pos in celleMovimentiNemici)){celleMovimentiNemici[pos] = 0;}
+//           celleMovimentiNemici[pos]++;
+//         }
+// <?php if (1 == $debug) { ?> for (const p of possibili) { debugPezzoMov(p,pos,'#ff0000'); } <?php } ?>
+//       }
+
+      for(var p0 of pezziNemici) {
+        p0 = Number(p0);
+        var [lim,mov] = gMovimentiPezzi[g.pezzi[p0].at(0)];
         var possibili = [];
-        var consentite = [];
-        const [l,movs] = movimentiPezzo(g.pezzi[pos]);
-        for(const {d:d,m:m} of movs){
-          for(var o = 0; o < l; o++){
-            var [i,j] = [(pos&0xf0)>>4,(pos&0xf)];
-            [i,j] = m(i,j,d*(1+o));
-            i *= (0 <= i && i < 12);
-            j *= (0 <= j && j < 12);
-            const p0 = (((i) & 0xf) << 4) | ((j) & 0xf);
-            if (cellaFuoriTavola(p0)) {
-              break;
-            } else if (p0 in g.pezzi) {
-              if (g.pezzi[p0].at(1) == g.pezzi[pos].at(1)) {
-                g.pezziDifesi.push(p0);
-              } else if (p0 in idxRe) {
-                g.scacco = p0;
-              } else {
-                possibili.push(p0);
-                for(o = o+1; o < l; o++){
-                  const minaccia = m(pos,d*o);
-                  if(cellaFuoriTavola(minaccia)){
-                    break;
-                  } else if (minaccia in g.pezzi) {
-                    if (minaccia in idxRe) {
-                      g.pezziScaccabili[cella] = [pos,consentite];
+        for(const m of mov){
+          var direzione = [];
+          for(var k = 1; k <= lim; k++){
+            var p1 = p0 + m * k;
+            if (cellaFuoriTavola(p1)) { break; }
+            if (p1 in g.pezzi) {
+              // TODO salva anche le pos dei pezzi
+              if (p1 == idxRe) { pezziScaccanti.push(direzione); break; }
+              possibili.push(p1);
+              if (g.pezzi[p1].at(1) != g.pezzi[p0].at(1)) {
+                for (var k1 = k+1; k1 <= lim; k1++){
+                  var p2 = p0 + m * k1;
+                  if(cellaFuoriTavola(p2)) { break; }
+                  if(p2 in g.pezzi) {
+                    if(p2 == idxRe) {
+                      pezziADifesa[p1] = direzione;
                     }
                     break;
-                  } else {
-                    consentite.push(minaccia);
-                    continue;
                   }
+                  direzione.push(p2);
                 }
-                break;
               }
-            } else {
-              possibili.push(p0);
-              consentite.push(p0);
+              break;
             }
+            movimentiNemici.add(p1);
+            possibili.push(p1);
+            direzione.push(p1);
           }
         }
-        g.movimenti[pos] = possibili;
-        for(const pos of possibili){
-          if(!(pos in celleMovimentiNemici)){celleMovimentiNemici[pos] = 0;}
-          celleMovimentiNemici[pos]++;
+        g.movimenti[p0] = possibili;
+      }
+      for(var p0 of pezziAlleati){
+        if ( 1 < pezziScaccanti.length ) { break; }
+        p0 = Number(p0);
+        var possibili = [];
+        var [lim,mov] = gMovimentiPezzi[g.pezzi[p0].at(0)];
+        for(const m of mov){
+          for(var k = 1; k <= lim; k++){
+            var p1 = p0 + m * k;
+            if (cellaFuoriTavola(p1)) { break; }
+            if (p0 in pezziADifesa && !pezziADifesa[p0].includes(p1)) { continue; }
+            if (1 == pezziScaccanti.length && !pezziScaccanti[0].includes(p1)) { continue; }
+            if (p1 in g.pezzi) {
+              if (g.pezzi[p1].at(1) != g.pezzi[p0].at(1)) { possibili.push(p1); }
+              break;
+            }
+            possibili.push(p1);
+          }
         }
-<?php if (1 == $debug) { ?> for (const p of possibili) { debugPezzoMov(p,pos,'#ff0000'); } <?php } ?>
+        g.movimenti[p0] = possibili;
       }
-      for(const pos of pezziAlleati){
+      {
+        var p0 = idxRe;
+        p0 = Number(p0);
         var possibili = [];
-        movimentiPezzo(pos,erranteAlleato,possibili);
-        g.movimenti[pos] = possibili;
-      }
-      for(const pos of idxRe){
-        var possibili = [];
-        movimentiPezzo(pos,erranteRe,possibili);
-        g.movimenti[pos] = possibili;
+        var [lim,mov] = gMovimentiPezzi[g.pezzi[p0].at(0)];
+        for(const m of mov){
+          for(var k = 1; k <= lim; k++){
+            var p1 = p0 + m * k;
+            if (cellaFuoriTavola(p1)) { break; }
+            if (movimentiNemici.has(p1)) { break; }
+            if (p1 in g.pezzi) {
+              if (g.pezzi[p1].at(1) != g.pezzi[p0].at(1)) { possibili.push(p1); }
+              break;
+            }
+            possibili.push(p1);
+          }
+        }
+        g.movimenti[p0] = possibili;
       }
     }
 
