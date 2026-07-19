@@ -324,12 +324,12 @@ echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
     <script>
 
 const gMovimentiPezzi = {
-  //'T' : [16, [-1,1,-16,16,-15,15]]
   'T' : [10, [-1,1,-16,16,-15,15]]
 , 'C' : [ 1, [-13,13,-18,18,-33,33,-47,47,-46,46,-29,29]]
 , 'A' : [10, [-17,17,-14,14,-31,31]]
 , 'D' : [10, [-1,1,-16,16,-15,15,-17,17,-14,14,-31,31]]
 , 'R' : [ 1, [-1,1,-16,16,-15,15,-17,17,-14,14,-31,31]]
+, 'P' : [ 1, [1,16,-15]]
 };
 
     function debugLine(b,a,colore = '#ff0000'){
@@ -345,26 +345,6 @@ const gMovimentiPezzi = {
       }
       g.ctx.closePath();
       g.ctx.stroke();
-    }
-
-    function debugPezzoMov(p0, p1, colore){
-      const altezzaTesto = 20;
-      const allineamentoX = 0 - 2;
-      const allineamentoY = altezzaTesto - 8;
-      const [n,c] = g.pezzi[p1];
-      const offset = {'P':[0,0], 'T':[8,0], 'C':[16,0], 'A':[24,0], 'D':[32,0], 'R':[40,0]}[n];
-      var [x,y] = posByIdx(p0);
-      x += offset[0];
-      y += offset[1];
-      g.ctx.font = 'bold ' + altezzaTesto + 'px Courier';
-      g.ctx.fillStyle   = colore;
-      //g.ctx.strokeStyle = '#222222';
-      g.ctx.beginPath();
-      g.ctx.fillText  (n, x + allineamentoX, y + allineamentoY);
-      //g.ctx.strokeText(n, x + allineamentoX, y + allineamentoY);
-      g.ctx.fill();
-      g.ctx.stroke();
-      return [x,y];
     }
 
     const MOSSA_LEN = 'PBAAAA.'.length;
@@ -529,85 +509,12 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       g.ctx.stroke();
     }
 
-    function cellaLibera(pos) {
-      return !(pos in g.pezzi);
-    }
-
     function cellaFuoriTavola(pos){
         const i = (pos & 0xf0) >> 4;
         const j = pos & 0xf;
         const s = i+j;
         return !((5 <= s && s <= 15) && (0 <= i && i <= 10) && (0 <= j && j <= 10));
     }
-
-    function spostaVerticale(i,j,o){
-      return [i,j+o];
-      return (pos & 0xf0) | ((pos + o) & 0xf);
-    }
-    function spostaAscendente(i,j,o){
-      return [i+o,j];
-      return ((pos + (o << 4)) & 0xf0) | (pos & 0xf);
-    }
-    function spostaDiscendente(i,j,o){
-      return [i+o,j-o];
-      return ((pos + (o << 4)) & 0xf0) | ((pos - o) & 0xf);
-    }
-    function spostaDiagonaleOrizzontale(i,j,o){
-      return [i + 2 * o,j - o];
-      return ((pos + (o << 5)) & 0xf0) | ((pos - o) & 0xf);
-    }
-    function spostaDiagonaleAscendente(i,j,o){
-      return [i + o,j + o];
-      return ((pos + (o << 4)) & 0xf0) | ((pos + o) & 0xf);
-    }
-    function spostaDiagonaleDiscendente(i,j,o){
-      return [i + o,j - 2 * o];
-      return ((pos + (o << 4)) & 0xf0) | ((pos - 2 * o) & 0xf);
-    }
-    function spostaCavalloAscendenteRipida(i,j,o){
-      return [i + o,j + 2 * o];
-      return ((pos + (o << 4)) & 0xf0) | ((pos + 2 * o) & 0xf);
-    }
-    function spostaCavalloAscendentePiana(i,j,o){
-      return [i + 3 * o,j - o];
-      return ((pos + (o << 5) + (0 << 4)) & 0xf0) | ((pos - o) & 0xf);
-    }
-    function spostaCavalloAscendenteMedia(i,j,o){
-      return [i + 2 * o,j + o];
-      return ((pos + (o << 5)) & 0xf0) | ((pos + o) & 0xf);
-    }
-    function spostaCavalloDiscendenteRipida(i,j,o){
-      return [i + o,j - 3 * o];
-      return ((pos + (o << 4)) & 0xf0) | ((pos - 3 * o) & 0xf);
-    }
-    function spostaCavalloDiscendentePiana(i,j,o){
-      return [i + 2 * o,j - 3 * o];
-      return ((pos + (o << 5)) & 0xf0) | ((pos - 3 * o) & 0xf);
-    }
-    function spostaCavalloDiscendenteMedia(i,j,o){
-      return [i + 3 * o,j - 2 * o];
-      // return ((pos + (o << 5) + (0 << 4)) & 0xf0) | ((pos - (2 * o)) & 0xf);
-    }
-    function spostaPedone(i,j,o){
-      const pos = ((i&0xf)<<4)|(j&0xf);
-      const iniziali =
-        { 'B' : [0x1a,0x29,0x38,0x47,0x56,0x66,0x76,0x86,0x96]
-        , 'N' : [0x14,0x24,0x34,0x44,0x54,0x63,0x72,0x81,0x90]
-        };
-      if (-2 <= o && o <= 2) {
-        var mossaIniziale = iniziali[g.pezzi[pos].at(1)].includes(pos);
-        const limite = 1 + mossaIniziale;
-        const dentroLimiti = -limite <= o && o <= limite;
-        return [i,j + o];
-      }else if (-3 == o || o == 3) {
-        return [];
-      }else if (-4 == o || o == 4) {
-        return [];
-      }else{
-        return [0,0];
-      }
-    }
-
 
     function aggiornaUltimaMossa(){
       if (undefined == this.i) { this.i = 0; };
@@ -770,202 +677,30 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       var pezziScaccanti = [];
       var pezziADifesa = {};
       var pezziNemici  = [];
+      var pedoniNemici = [];
       var pezziAlleati = [];
+      var pedoniAlleati = [];
       var idxRe = 0;
       for(var pos of Object.keys(g.pezzi)){
         var pezzo = g.pezzi[pos];
         if(pezzo.at(1) != g.giocatore.value){
-          pezziNemici.push(pos);
+          if ('P' == pezzo.at(0)) {
+            pedoniNemici.push(pos);
+          } else {
+            pezziNemici.push(pos);
+          }
         }else if('R' == pezzo.at(0)){
           idxRe = pos;
         }else{
-          pezziAlleati.push(pos);
+          if('P' == pezzo.at(0)){
+            pedoniAlleati.push(pos);
+          } else {
+            pezziAlleati.push(pos);
+          }
         }
       }
-
-//       function erranteNemico(pos,limite,movimenti,possibili){
-// <?php if (1 == $debug) { ?>
-// coloraBordoEsagono(pos,'#ff0000');
-// <?php } ?>
-//         const massimo = 256;
-//         limite = ((((limite) % massimo) + massimo) % massimo) + 1;
-//         for(const {m:m, d:d} of movimenti){
-//           var consentite = [];
-//           consentite.push(pos);
-//           for(var k = 1; k < limite; k++){
-//             var i = (pos & 0xf0) >> 4;
-//             var j = (pos & 0xf);
-//             [i,j] = m(i,j,d*k);
-//             i = (i != (i & 0xf)) * i;
-//             j = (j != (j & 0xf)) * j;
-//             const cella = ((i << 4) & 0xf0) | (j&0xf);
-//             if(cellaFuoriTavola(cella)){
-//               break;
-//             } else if(cellaLibera(cella)){
-//               possibili.push(cella);
-//               consentite.push(cella);
-//               continue;
-//             }else if(g.pezzi[pos].at(1) == g.pezzi[cella]){
-//               g.pezziDifesi.push(cella);
-//               break;
-//             }else if(cella in idxRe){
-//               g.scacco = cella;
-//               break;
-//             }else{
-//               possibili.push(cella);
-//               for(l = k+1; l < limite; l++){
-//                 const minaccia = m(pos,d*l);
-//                 if(cellaFuoriTavola(minaccia)){
-//                   break;
-//                 } else if (cellaLibera(minaccia)) {
-//                   consentite.push(minaccia);
-//                   continue;
-//                 } else {
-//                   if (minaccia in idxRe) {
-//                     const pezzoScaccabile = {pezzo:pos,consentite:consentite};
-//                     g.pezziScaccabili[cella] = pezzoScaccabile;
-//                   }
-//                   break;
-//                 }
-//               }
-//               break;
-//             }
-//           }
-//         }
-// <?php if (1 == $debug) { ?>
-// for (const p in possibili) {
-//  debugPezzoMov(p,pos,'#ff0000');
-// }
-// <?php } ?>
-//       }
-//       function erranteAlleato(pos,limite,movimenti,possibili){
-// <?php if (1 == $debug) { ?>
-// coloraBordoEsagono(pos,'#0000ff');
-// <?php } ?>
-//         var potenzialiPossibili = [];
-//         const massimo = 256;
-//         limite = ((((limite) % massimo) + massimo) % massimo) + 1;
-//         for(const {m:m, d:d} of movimenti){
-//           for(var k = 1; k < limite; k++){
-//             var i = (pos & 0xf0) >> 4;
-//             var j = (pos & 0xf);
-//             [i,j] = m(i,j,d*k);
-//             i = (i != (i & 0xf)) * i;
-//             j = (j != (j & 0xf)) * j;
-//             const pos0 = ((i << 4) & 0xf0) | (j&0xf);
-//             if(cellaFuoriTavola(pos0)){
-//               break;
-//             } else if(cellaLibera(pos0)){
-//               potenzialiPossibili.push(pos0);
-//               continue;
-//             } else if(g.pezzi[pos0].at(1) != g.pezzi[pos].at(1)){
-//               potenzialiPossibili.push(pos0);
-//               break;
-//             } else {
-//               break;
-//             }
-//           }
-//         }
-//         if (null != g.scacco || (pos in g.pezziScaccabili)) {
-//           const {cella:minacciante, consentite:consentite} = g.pezziScaccabili[pos];
-//           potenzialiPossibili = consentite.filter(c => c in potenzialiPossibili);
-//         }
-//         for(const c of potenzialiPossibili){
-//           possibili.push(c);
-//         }
-// <?php if (1 == $debug) { ?>
-// for (const p in possibili) {
-//  debugPezzoMov(p,pos,'#0000ff');
-// }
-// <?php } ?>
-//       }
-//       function erranteRe(pos,limite,movimenti,possibili){
-// <?php if (1 == $debug) { ?>
-// coloraBordoEsagono(pos,'#00ff00');
-// <?php } ?>
-//         const massimo = 256;
-//         limite = ((((limite) % massimo) + massimo) % massimo) + 1;
-//         for(const {m:m, d:d} of movimenti){
-//           for(var k = 1; k < limite; k++){
-//             var i = (pos & 0xf0) >> 4;
-//             var j = (pos & 0xf);
-//             [i,j] = m(i,j,d*k);
-//             i = (i != (i & 0xf)) * i;
-//             j = (j != (j & 0xf)) * j;
-//             const pos0 = ((i << 4) & 0xf0) | (j&0xf);
-//             if(cellaFuoriTavola(pos0)){
-//               break;
-//             } else if(pos0 in celleMovimentiNemici && 0 < celleMovimentiNemici[pos0]){
-//               break;
-//             } else if(cellaLibera(pos0)){
-//               possibili.push(pos0);
-//               continue;
-//             } else if(g.pezzi[pos0].at(1) != g.pezzi[pos].at(1)){
-//               possibili.push(pos0);
-//               break;
-//             } else {
-//               break;
-//             }
-//           }
-//         }
-// <?php if (1 == $debug) { ?>
-// for (const p in possibili) {
-//  debugPezzoMov(p,pos,'#00ff00');
-// }
-// <?php } ?>
-//       }
-//       var celleMovimentiNemici = {};
-//       for(const pos of pezziNemici){
-// <?php if (1 == $debug) { ?> coloraBordoEsagono(pos,'#ff0000'); <?php } ?>
-//         var possibili = [];
-//         var consentite = [];
-//         const [l,movs] = movimentiPezzo(g.pezzi[pos]);
-//         for(const {d:d,m:m} of movs){
-//           for(var o = 0; o < l; o++){
-//             var [i,j] = [(pos&0xf0)>>4,(pos&0xf)];
-//             [i,j] = m(i,j,d*(1+o));
-//             i *= (0 <= i && i < 12);
-//             j *= (0 <= j && j < 12);
-//             const p0 = (((i) & 0xf) << 4) | ((j) & 0xf);
-//             if (cellaFuoriTavola(p0)) {
-//               break;
-//             } else if (p0 in g.pezzi) {
-//               if (g.pezzi[p0].at(1) == g.pezzi[pos].at(1)) {
-//                 g.pezziDifesi.push(p0);
-//               } else if (p0 in idxRe) {
-//                 g.scacco = p0;
-//               } else {
-//                 possibili.push(p0);
-//                 for(o = o+1; o < l; o++){
-//                   const minaccia = m(pos,d*o);
-//                   if(cellaFuoriTavola(minaccia)){
-//                     break;
-//                   } else if (minaccia in g.pezzi) {
-//                     if (minaccia in idxRe) {
-//                       g.pezziScaccabili[cella] = [pos,consentite];
-//                     }
-//                     break;
-//                   } else {
-//                     consentite.push(minaccia);
-//                     continue;
-//                   }
-//                 }
-//                 break;
-//               }
-//             } else {
-//               possibili.push(p0);
-//               consentite.push(p0);
-//             }
-//           }
-//         }
-//         g.movimenti[pos] = possibili;
-//         for(const pos of possibili){
-//           if(!(pos in celleMovimentiNemici)){celleMovimentiNemici[pos] = 0;}
-//           celleMovimentiNemici[pos]++;
-//         }
-// <?php if (1 == $debug) { ?> for (const p of possibili) { debugPezzoMov(p,pos,'#ff0000'); } <?php } ?>
-//       }
-
+      for(var po of pedoniNemici) {
+      }
       for(var p0 of pezziNemici) {
         p0 = Number(p0);
         var [lim,mov] = gMovimentiPezzi[g.pezzi[p0].at(0)];
@@ -1000,6 +735,8 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           }
         }
         g.movimenti[p0] = possibili;
+      }
+      for(var po of pedoniAlleati) {
       }
       for(var p0 of pezziAlleati){
         if ( 1 < pezziScaccanti.length ) { break; }
