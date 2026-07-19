@@ -558,7 +558,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         return;
       }
       if (g.pezzoAttivo in g.pezzi){
-        if (1 == g.movimenti[g.pezzoAttivo].filter(([i1,j1]) => i == i1 && j == j1).length) {
+        if (g.movimenti[g.pezzoAttivo].includes(pos)) {
           const pezzo = g.pezzi[g.pezzoAttivo];
           const url = "/?method=muovi&partita=<?php echo $partita_id; ?>"
             + "&colore=" + pezzo.colore + "&nome=" + pezzo.nome
