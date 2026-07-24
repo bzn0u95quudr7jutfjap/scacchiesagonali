@@ -669,6 +669,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       var pedoniNemici = [];
       var pezziAlleati = [];
       var pedoniAlleati = [];
+      var pDirezione = 0;
       var idxRe = 0;
       for(var pos of Object.keys(g.pezzi)){
         var pezzo = g.pezzi[pos];
@@ -688,16 +689,17 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           }
         }
       }
+      pDirezione = ('B' == g.giocatore.value) ? -1 : 1;
       for(var p0 of pedoniNemici) {
         p0 = Number(p0);
         var possibili = [];
         var p1 = 0;
-        p1 = p0 +  1; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
+        p1 = p0 +  1 * pDirezione; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
         possibili.push(p1);
-        p1 = p0 +  2; if (gPosInizialiPedoni[g.pezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p1); }
+        p1 = p0 +  2 * pDirezione; if (gPosInizialiPedoni[g.pezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p1); }
         }
-        p1 = p0 + 16; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
-        p1 = p0 - 15; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+        p1 = p0 + 16 * pDirezione; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+        p1 = p0 - 15 * pDirezione; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
         g.movimenti[p0] = possibili;
       }
       for(var p0 of pezziNemici) {
@@ -735,17 +737,18 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         }
         g.movimenti[p0] = possibili;
       }
+      pDirezione = ('B' == g.giocatore.value) ? 1 : -1;
       for(var p0 of pedoniAlleati) {
         p0 = Number(p0);
         var possibili = [];
         var p1 = 0;
         const c = g.pezzi[p0].at(1);
-        p1 = p0 -  1; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
+        p1 = p0 -  1 * pDirezione; if (!cellaFuoriTavola(p1) && !(p1 in g.pezzi)) {
         possibili.push(p1);
-        p1 = p0 -  2; if (gPosInizialiPedoni[c].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p1); }
+        p1 = p0 -  2 * pDirezione; if (gPosInizialiPedoni[c].has(p0) && !cellaFuoriTavola(p1) && !(p1 in g.pezzi)) { possibili.push(p1); }
         }
-        p1 = p0 + 15; if (p1 in g.pezzi && c != g.pezzi[p1].at(1)) { possibili.push(p1); }
-        p1 = p0 - 16; if (p1 in g.pezzi && c != g.pezzi[p1].at(1)) { possibili.push(p1); }
+        p1 = p0 + 15 * pDirezione; if (p1 in g.pezzi && c != g.pezzi[p1].at(1)) { possibili.push(p1); }
+        p1 = p0 - 16 * pDirezione; if (p1 in g.pezzi && c != g.pezzi[p1].at(1)) { possibili.push(p1); }
         if (p0 in pezziADifesa) { possibili = possibili.filter(p1 => pezziADifesa[p0].includes(p1)); }
         if (1 == pezziScaccanti.length) { possibili = possibili.filter(p1 => pezziScaccanti[0].includes(p1)); }
         g.movimenti[p0] = possibili;
