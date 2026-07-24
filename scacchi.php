@@ -66,40 +66,16 @@ $method = $_GET[$method];
 switch($method){
 case 'nuova_partita': {
     $condizioni_iniziali = <<<eof
-      PBBKBK
-      PBCJCJ
-      PBDIDI
-      PBEHEH
-      PBFGFG
-      PBGGGG
-      PBHGHG
-      PBIGIG
-      PBJGJG
-      PNBEBE
-      PNCECE
-      PNDEDE
-      PNEEEE
-      PNFEFE
-      PNGDGD
-      PNHCHC
-      PNIBIB
-      PNJAJA
-      ABFKFK
-      ABFJFJ
-      ABFIFI
-      TBCKCK
-      TBIHIH
-      CBDKDK
-      CBHIHI
+      PBBKBK PBCJCJ PBDIDI PBEHEH PBFGFG PBGGGG PBHGHG PBIGIG PBJGJG
+      PNBEBE PNCECE PNDEDE PNEEEE PNFEFE PNGDGD PNHCHC PNIBIB PNJAJA
+      ABFKFK ABFJFJ ABFIFI
+      TBCKCK TBIHIH
+      CBDKDK CBHIHI
       DBEKEK
       RBGJGJ
-      ANFAFA
-      ANFBFB
-      ANFCFC
-      TNCDCD
-      TNIAIA
-      CNDCDC
-      CNHAHA
+      ANFAFA ANFBFB ANFCFC
+      TNCDCD TNIAIA
+      CNDCDC CNHAHA
       DNEBEB
       RNGAGA\n
       eof;
@@ -117,18 +93,19 @@ case 'muovi': {
     $mossa = $_GET['mossa'];
     $is_mossa_valida = preg_match('/[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/',$mossa);
     if (1 != $is_mossa_valida) { die('ERRORE: MOSSA INVALIDA'); }
+    $partita = 'partita';
     $partita_id = $_GET[$partita];
     $partita = fopen($partita_id,'a');
     if(false === $partita) { die("ERRORE: NELL'APERTURA DI $partita_id"); }
     if(false === fputs($partita,$mossa)) {}
+    if(false === fputs($partita,"\n")) {}
     fclose($partita);
-    $partita = fopen($partita_id,'r');
     $ultimamossa = $mossa;
-    $ultimamossajson = json_encode($ultimamossa,JSON_FORCE_OBJECT);
-    $mossa = get_ultima_mossa($partita);
-    $mossajson = json_encode($mossa,JSON_FORCE_OBJECT);
-    if (0 == strcmp($mossa,$ultima_mossa)) {
-      die("errore mossa scritta differisce dalla mossa riletta\n-$mossajson\n-$ultimamossajson");
+    $partita = fopen($partita_id,'r');
+    fseek($partita,strlen($mossa) + 1,SEEK_END);
+    $mossa = fread($partita,strlen($mossa) + 1);
+    if (0 == strcmp($mossa,$ultimamossa)) {
+      die("errore mossa scritta differisce dalla mossa riletta\n-$mossa\n-$ultimamossa");
     }
     echo $mossa;
     fclose($partita);
@@ -220,7 +197,9 @@ case 'partita': {
     </select>
     <canvas id=c></canvas>
     <form>
-      <input name=mossa type=text id=mossa pattern="[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]" value="">
+      <input type=text readonly name="method"  value="muovi">
+      <input type=text readonly name="partita" value="<?php echo $partita_id; ?>">
+      <input type=text readonly name="mossa"   id=mossa pattern="[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]" value="">
       <script>
         const mossaChrArr = [' ',' ',' ',' ',' ',' '];
         mossa.value = mossaChrArr.join('');
@@ -553,46 +532,44 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       if (ultimaMossaStr.at(1) == g.giocatore.value) {
         return;
       }
-      const pos = idxByPos(x,y);
-      if(cellaFuoriTavola(pos)){
+      const p1 = idxByPos(x,y);
+      if(cellaFuoriTavola(p1)){
         return;
       }
-      if (g.pezzoAttivo in g.pezzi){
-        if (g.movimenti[g.pezzoAttivo].includes(pos)) {
-          const pezzo = g.pezzi[g.pezzoAttivo];
-          const url = "/?method=muovi&partita=<?php echo $partita_id; ?>"
-            + "&colore=" + pezzo.colore + "&nome=" + pezzo.nome
-            + "&da_i=" + i0 + "&da_j=" + j0 + "&a_i=" + i + "&a_j=" + j;
-          var xhttp = new XMLHttpRequest();
-          xhttp.open("GET", url, false);
-          xhttp.send();
-          if (200 != xhttp.status) { alert("ERRORE NEL FETCHING DELL'ULTIMA MOSSA"); throw 0; }
-          const ultimaMossaScrittaStr = xhttp.responseText;
-          g.ultimaMossa = JSON.parse(ultimaMossaScrittaStr);
-          if(1){
-          const {nome:n, colore:c, da_i:i0, da_j:j0, a_i:i1, a_j:j1} = g.ultimaMossa;
-          if (!(i1 in g.pezzi)) { g.pezzi[i1]={}; }
-          g.pezzi[i1][j1] = pezzo;
-          delete g.pezzi[i0][j0];
-          g.pezzoAttivo = null;
-          }
-          updateMovimenti();
-          drawScacchiera();
-          drawPezzi();
-          aggiornaUltimaMossa();
+      if (0 != g.pezzoAttivo){
+        const p0 = g.pezzoAttivo;
+        if (g.movimenti[p0].includes(p1)) {
+          const mossaBytes = new Uint8Array(4);
+          mossaBytes[0] = 65 + ((p0 & 0xf0) >> 4);
+          mossaBytes[1] = 65 +  (p0 & 0xf);
+          mossaBytes[2] = 65 + ((p1 & 0xf0) >> 4);
+          mossaBytes[3] = 65 +  (p1 & 0xf);
+          const decoder = new TextDecoder('ascii');
+          const mossa = g.pezzi[p0] + decoder.decode(mossaBytes);;
+          const url = "/?method=muovi&partita=<?php echo $partita_id; ?>&mossa=" + mossa;
+          console.log(url);
+          httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
+            if (mossaSrv == mossa) {
+              eseguiMosse(mossa);
+              g.pezzoAttivo = null;
+              updateMovimenti();
+              drawScacchiera();
+              drawPezzi();
+            }
+          });
           return;
         }
       }
-      g.pezzoAttivo = null;
-      if(!(pos in g.pezzi)) {
+      g.pezzoAttivo = 0;
+      if(!(p1 in g.pezzi)) {
         return;
       }
-      if(g.giocatore.value != g.pezzi[pos].at(1)){
+      if(g.giocatore.value != g.pezzi[p1].at(1)){
         return;
       }
-      g.pezzoAttivo = pos;
-      coloraBordoEsagono(pos,'#6688ccff');
-      const movimenti = g.movimenti[pos];
+      g.pezzoAttivo = p1;
+      coloraBordoEsagono(p1,'#6688ccff');
+      const movimenti = g.movimenti[p1];
       for(const pos of movimenti){
         const cellaOccupata = pos in g.pezzi;
         if (cellaFuoriTavola(pos) || (cellaOccupata && g.pezzi[pos].at(1) == g.giocatore.value)) {
@@ -678,7 +655,6 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         g.ctx.fill();
         g.ctx.stroke();
       }
-
     }
 
     function updateMovimenti(){
