@@ -97,18 +97,20 @@ case 'muovi': {
     $partita_id = $_GET[$partita];
     $partita = fopen($partita_id,'a');
     if(false === $partita) { die("ERRORE: NELL'APERTURA DI $partita_id"); }
-    if(false === fputs($partita,$mossa)) {}
-    if(false === fputs($partita,"\n")) {}
+    if(false === fputs($partita,$mossa)) { die("errore: scrivendo la mossa"); }
+    if(false === fputs($partita,"\n")) { die("errore: scrivendo il char di fine mossa"); }
     fclose($partita);
     $ultimamossa = $mossa;
-    $partita = fopen($partita_id,'r');
-    fseek($partita,strlen($mossa) + 1,SEEK_END);
-    $mossa = fread($partita,strlen($mossa) + 1);
-    if (0 == strcmp($mossa,$ultimamossa)) {
+    if(false === ($partita = fopen($partita_id,'r'))) {die("error: fopen");}
+    if(0 != fseek($partita,-(strlen($mossa)+1),SEEK_END)) {die("error: fseek");}
+    $mossa = fread($partita,strlen($mossa));
+    if (false === $mossa) { die("errore mossa è falso"); }
+    if (0 != strcmp($mossa,$ultimamossa)) {
       die("errore mossa scritta differisce dalla mossa riletta\n-$mossa\n-$ultimamossa");
     }
     echo $mossa;
     fclose($partita);
+    exit(0);
   } break;
 case 'leggi_mosse' :{
 $partita = 'partita';
@@ -126,8 +128,9 @@ case 'ultima_mossa': {
     if(false === $partita) {
       die("errore nell'apertura di $partita");
     }
-    $mossa = get_ultima_mossa($partita);
-    $mossa = json_encode($mossa,JSON_FORCE_OBJECT);
+    $mossalen = 6;
+    fseek($partita,-($mossalen+1),SEEK_END);
+    $mossa = fread($partita,$mossalen);
     echo $mossa;
     fclose($partita);
   } break;
@@ -311,6 +314,10 @@ echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
 </div>
     <script>
 
+
+const MOSSA_LEN = 'PBAAAA.'.length;
+const MOSSA_RGX = /[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/;
+var gPollCount = 0;
 const gPosInizialiPedoni = {
   'N' : new Set([0x14,0x24,0x34,0x44,0x54,0x63,0x72,0x81,0x90])
 , 'B' : new Set([0x1a,0x29,0x38,0x47,0x56,0x66,0x76,0x86,0x96])
@@ -339,11 +346,8 @@ const gMovimentiPezzi = {
       g.ctx.stroke();
     }
 
-    const MOSSA_LEN = 'PBAAAA.'.length;
-    const MOSSA_RGX = /[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/;
-
     function ultimaMossa(){
-      return cronologia.innerHTML.substr(-MOSSA_LEN,MOSSA_LEN);
+      return cronologia.value.substr(-MOSSA_LEN,MOSSA_LEN);
     }
 
     function eseguiMosse(mosse){
@@ -369,6 +373,24 @@ const gMovimentiPezzi = {
       };
       a.open("GET",url,true);
       a.send();
+    }
+
+    function pollUltimaMossa () {
+      gPollCount = 0;
+      setTimeout(function loop() {
+        httpGet("?method=ultima_mossa&partita=<?php echo "$partita_id"; ?>",function (ultimaMossa){
+          gPollCount += 1;
+          const delay = 32 - Math.clz32(gPollCount);
+          console.log('polling',ultimaMossa,gPollCount,delay);
+          if (g.giocatore.value == ultimaMossa.at(1)) {
+            setTimeout(loop,1000*delay);
+          } else {
+            cronologia.value += ultimaMossa;
+            cronologia.value += "\n";
+            coloraUltimaMossa();
+          }
+        });
+      },1000);
     }
 
     const g = function init(){
@@ -415,11 +437,16 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           coloraBordoEsagono(p,colore);
         }
 <?php } else { ?>
-        cronologia.innerHTML = txt;
+        cronologia.value = txt;
         eseguiMosse(txt);
         drawScacchiera();
         drawPezzi();
         updateMovimenti();
+        const c = cronologia.value;
+        const u = c.length - 7;
+        if (c.at(u + 1) == g.giocatore.value) {
+          pollUltimaMossa();
+        }
 <?php } ?>
       });
       return g;
@@ -508,28 +535,10 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         return !((5 <= s && s <= 15) && (0 <= i && i <= 10) && (0 <= j && j <= 10));
     }
 
-    function aggiornaUltimaMossa(){
-      if (undefined == this.i) { this.i = 0; };
-      const ultimaMossaStr = ultimaMossa();
-      const gUltimaMossaStr = JSON.stringify(g.ultimaMossa);
-      if (gUltimaMossaStr == ultimaMossaStr) {
-        this.i++;
-        const i = this.i;
-        setTimeout(aggiornaUltimaMossa,1000 * (1 + (2<i) + (2*(4<i)) + (4*(8<i))));
-        return;
-      }
-      this.i = 0;
-      g.ultimaMossa = ultimaMossaStr;
-      const {da_i:i0,da_j:j0,a_i:i1,a_j:j1,colore:c,nome:n} = g.ultimaMossa;
-      muoviPezzo(i0,j0,i1,j1,c,n,g);
-      updateMovimenti();
-      drawScacchiera();
-      drawPezzi();
-    }
-
     function selezionaPezzo(x,y){
-      const ultimaMossaStr = ultimaMossa();
-      if (ultimaMossaStr.at(1) == g.giocatore.value) {
+      const c = cronologia.value;
+      const u = c.length - 7;
+      if (c.at(u + 1) == g.giocatore.value) {
         return;
       }
       const p1 = idxByPos(x,y);
@@ -547,7 +556,6 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           const decoder = new TextDecoder('ascii');
           const mossa = g.pezzi[p0] + decoder.decode(mossaBytes);;
           const url = "/?method=muovi&partita=<?php echo $partita_id; ?>&mossa=" + mossa;
-          console.log(url);
           httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
             if (mossaSrv == mossa) {
               eseguiMosse(mossa);
@@ -555,6 +563,12 @@ txt = <?php echo json_encode($_GET['t']); ?>;
               updateMovimenti();
               drawScacchiera();
               drawPezzi();
+              cronologia.value += mossa;
+              cronologia.value += "\n";
+              coloraUltimaMossa();
+              pollUltimaMossa();
+            } else {
+              alert("Errore ultima mossa");
             }
           });
           return;
@@ -626,8 +640,17 @@ txt = <?php echo json_encode($_GET['t']); ?>;
     }
 
     function coloraUltimaMossa(){
-      coloraBordoEsagono(g.ultimaMossa.da_i,g.ultimaMossa.da_j,'#00ff00');
-      coloraBordoEsagono(g.ultimaMossa.a_i,g.ultimaMossa.a_j  ,'#00ff00');
+      const c = cronologia.value;
+      const u = c.length - 7;
+      var p0 = 0;
+      p0 |= ((c.charCodeAt(u + 3) - 65) & 0xf);
+      p0 |= ((c.charCodeAt(u + 4) - 65) & 0xf) << 4;
+      var p1 = 0;
+      p1 |= ((c.charCodeAt(u + 5) - 65) & 0xf);
+      p1 |= ((c.charCodeAt(u + 6) - 65) & 0xf) << 4;
+      console.log('ultimamossa',c.substr(u));
+      coloraBordoEsagono(p0,'#00ff00');
+      coloraBordoEsagono(p1,'#00ff00');
     }
 
     function drawPezzi(){
