@@ -376,7 +376,6 @@ const gMovimentiPezzi = {
         httpGet("?method=ultima_mossa&partita=<?php echo "$partita_id"; ?>",function (ultimaMossa){
           gPollCount += 1;
           const delay = 32 - Math.clz32(gPollCount);
-          console.log('polling',ultimaMossa,gPollCount,delay);
           if (g.giocatore.value == ultimaMossa.at(1)) {
             setTimeout(loop,1000*delay);
           } else {
@@ -439,6 +438,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         updateMovimenti();
         const c = cronologia.value;
         const u = c.length - 7;
+        coloraUltimaMossa();
         if (c.at(u + 1) == g.giocatore.value) {
           pollUltimaMossa();
         }
@@ -635,15 +635,18 @@ txt = <?php echo json_encode($_GET['t']); ?>;
     }
 
     function coloraUltimaMossa(){
+      const nPezzi = 36;
       const c = cronologia.value;
       const u = c.length - 7;
+      if(!((MOSSA_LEN * nPezzi) < c.length)) {
+        return;
+      }
       var p0 = 0;
+      p0 |= ((c.charCodeAt(u + 2) - 65) & 0xf) << 4;
       p0 |= ((c.charCodeAt(u + 3) - 65) & 0xf);
-      p0 |= ((c.charCodeAt(u + 4) - 65) & 0xf) << 4;
       var p1 = 0;
+      p1 |= ((c.charCodeAt(u + 4) - 65) & 0xf) << 4;
       p1 |= ((c.charCodeAt(u + 5) - 65) & 0xf);
-      p1 |= ((c.charCodeAt(u + 6) - 65) & 0xf) << 4;
-      console.log('ultimamossa',c.substr(u));
       coloraBordoEsagono(p0,'#00ff00');
       coloraBordoEsagono(p1,'#00ff00');
     }
@@ -825,6 +828,7 @@ c.addEventListener('mousedown', function(e) {
     drawScacchiera();
     drawPezzi();
     selezionaPezzo(x,y);
+    coloraUltimaMossa();
 })
 
     // =============================================
