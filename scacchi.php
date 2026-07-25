@@ -314,9 +314,6 @@ echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
 </div>
     <script>
 
-
-const MOSSA_LEN = 'PBAAAA.'.length;
-const MOSSA_RGX = /[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/;
 var gPollCount = 0;
 const gPosInizialiPedoni = {
   'N' : new Set([0x14,0x24,0x34,0x44,0x54,0x63,0x72,0x81,0x90])
@@ -344,10 +341,6 @@ const gMovimentiPezzi = {
       }
       g.ctx.closePath();
       g.ctx.stroke();
-    }
-
-    function ultimaMossa(){
-      return cronologia.value.substr(-MOSSA_LEN,MOSSA_LEN);
     }
 
     function eseguiMosse(mosse){
