@@ -676,6 +676,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         g.ctx.fill();
         g.ctx.stroke();
       }
+      coloraUltimaMossa();
     }
 
     function updateMovimenti(){
