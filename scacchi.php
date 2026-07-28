@@ -554,7 +554,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
             if (mossaSrv == mossa) {
               eseguiMosse(mossa);
-              g.pezzoAttivo = null;
+              g.pezzoAttivo = 0;
               updateMovimenti();
               drawScacchiera();
               drawPezzi();
@@ -676,7 +676,6 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         g.ctx.fill();
         g.ctx.stroke();
       }
-      coloraUltimaMossa();
     }
 
     function updateMovimenti(){
