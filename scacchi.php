@@ -211,9 +211,9 @@ case 'partita': {
       <option value='N'>Nero</option>
     </select>
     <div class=tavola>
-    <canvas class=tavola id=cScacchiera width=420 height=420></canvas>
-    <canvas class=tavola id=cPezzi width=420 height=420></canvas>
-    <canvas class=tavola id=c width=420 height=420></canvas>
+    <canvas class=tavola width=420 height=420 id=cScacchiera></canvas>
+    <canvas class=tavola width=420 height=420 id=cPezzi     ></canvas>
+    <canvas class=tavola width=420 height=420 id=c          ></canvas>
     </div>
     <form>
       <input type=text readonly name="method"  value="muovi">
