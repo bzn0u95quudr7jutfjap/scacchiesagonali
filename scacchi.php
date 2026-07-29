@@ -170,8 +170,20 @@ case 'partita': {
         width:  98%;
         height: 98%;
       }
-      canvas {
+      canvas.tavola {
+        position: absolute;
+        top:0px;
+        left:0px;
         border: solid 1px black;
+        width: 420px;
+        height: 420px;
+      }
+      div.tavola {
+        border: solid 1px black;
+        width: 420px;
+        min-width: 420px;
+        height: 420px;
+        min-height: 420px;
       }
       select.giocatore {
         display: none;
@@ -198,7 +210,11 @@ case 'partita': {
       <option value='B'>Bianco</option>
       <option value='N'>Nero</option>
     </select>
-    <canvas id=c></canvas>
+    <div class=tavola>
+    <canvas class=tavola id=cScacchiera width=420 height=420></canvas>
+    <canvas class=tavola id=cPezzi width=420 height=420></canvas>
+    <canvas class=tavola id=c width=420 height=420></canvas>
+    </div>
     <form>
       <input type=text readonly name="method"  value="muovi">
       <input type=text readonly name="partita" value="<?php echo $partita_id; ?>">
@@ -329,6 +345,8 @@ const gMovimentiPezzi = {
 , 'R' : [ 1, [-1,1,-16,16,-15,15,-17,17,-14,14,-31,31]]
 , 'P' : [ 1, [1,16,-15]]
 };
+const gPezziCtx = cPezzi.getContext("2d");
+const cCtx = c.getContext("2d");
 
     function debugLine(b,a,colore = '#ff0000'){
       g.ctx.lineWidth = 1;
@@ -381,6 +399,9 @@ const gMovimentiPezzi = {
           } else {
             cronologia.value += ultimaMossa;
             cronologia.value += "\n";
+            eseguiMosse(ultimaMossa);
+            updateMovimenti();
+            drawPezzi(gPezziCtx);
             coloraUltimaMossa();
           }
         });
@@ -388,13 +409,6 @@ const gMovimentiPezzi = {
     }
 
     const g = function init(){
-      const altezzaCanvas = window.innerHeight;
-      const larghezzaCanvas = window.innerWidth;
-      const latoCanvas = (altezzaCanvas < larghezzaCanvas ? altezzaCanvas : larghezzaCanvas) - 24;
-      // c.style.width  = latoCanvas + 'px';
-      // c.style.height = latoCanvas + 'px';
-      c.height = latoCanvas;
-      c.width  = latoCanvas;
       var g = {};
       g.debug = 1;
       g.c    = c;
@@ -411,7 +425,6 @@ const gMovimentiPezzi = {
       g.giocatore.value = "<?php echo $giocatore; ?>";
       httpGet("/?method=leggi_mosse&partita=<?php echo $partita_id; ?>",function (txt) {
 <?php if (2 == $debug) { ?>
-        drawScacchiera();
         for (var i = 0; i < 12; i++) {
           for (var j = 0; j < 12; j++) {
             const p = (i & 0xf) << 4 | (j & 0xf);
@@ -422,9 +435,8 @@ const gMovimentiPezzi = {
 txt = <?php echo json_encode($_GET['t']); ?>;
         cronologia.innerHTML = txt;
         eseguiMosse(txt);
-        drawScacchiera();
-        drawPezzi();
         updateMovimenti();
+        drawPezzi(gPezziCtx);
         var p0 = (txt.charCodeAt(4) - 65) << 4 | (txt.charCodeAt(5) - 65);
         const colore = g.pezzi[p0].at(1) == g.giocatore.value ? '#00ff00' : '#ff0000';
         for(const p of g.movimenti[p0]){
@@ -433,13 +445,12 @@ txt = <?php echo json_encode($_GET['t']); ?>;
 <?php } else { ?>
         cronologia.value = txt;
         eseguiMosse(txt);
-        drawScacchiera();
-        drawPezzi();
         updateMovimenti();
-        const c = cronologia.value;
-        const u = c.length - 7;
+        drawPezzi(gPezziCtx);
+        const cr = cronologia.value;
+        const u = cr.length - 7;
         coloraUltimaMossa();
-        if (c.at(u + 1) == g.giocatore.value) {
+        if (cr.at(u + 1) == g.giocatore.value) {
           pollUltimaMossa();
         }
 <?php } ?>
@@ -514,13 +525,13 @@ txt = <?php echo json_encode($_GET['t']); ?>;
 
     function coloraBordoEsagono(pos,colore){
       const v = verticiEsagono(pos);
-      g.ctx.lineWidth = 6;
-      g.ctx.strokeStyle = colore;
-      g.ctx.beginPath();
-      g.ctx.moveTo(v[0].x,v[0].y);
-      v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
-      g.ctx.closePath();
-      g.ctx.stroke();
+      cCtx.lineWidth = 6;
+      cCtx.strokeStyle = colore;
+      cCtx.beginPath();
+      cCtx.moveTo(v[0].x,v[0].y);
+      v.forEach(function (o) { cCtx.lineTo(o.x,o.y); });
+      cCtx.closePath();
+      cCtx.stroke();
     }
 
     function cellaFuoriTavola(pos){
@@ -531,9 +542,9 @@ txt = <?php echo json_encode($_GET['t']); ?>;
     }
 
     function selezionaPezzo(x,y){
-      const c = cronologia.value;
-      const u = c.length - 7;
-      if (c.at(u + 1) == g.giocatore.value) {
+      const cr = cronologia.value;
+      const u = cr.length - 7;
+      if (cr.at(u + 1) == g.giocatore.value) {
         return;
       }
       const p1 = idxByPos(x,y);
@@ -553,13 +564,12 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           const url = "/?method=muovi&partita=<?php echo $partita_id; ?>&mossa=" + mossa;
           httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
             if (mossaSrv == mossa) {
-              eseguiMosse(mossa);
               g.pezzoAttivo = 0;
-              updateMovimenti();
-              drawScacchiera();
-              drawPezzi();
               cronologia.value += mossa;
               cronologia.value += "\n";
+              eseguiMosse(mossa);
+              updateMovimenti();
+              drawPezzi(gPezziCtx);
               coloraUltimaMossa();
               pollUltimaMossa();
             } else {
@@ -592,89 +602,91 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       }
     }
 
-    function drawCellaEsagonoByIdx(pos){
+    function drawCellaEsagonoByIdx(ctx,pos){
       const colori = ['#000000ff','#888888ff','#ffffffff'];
       const v = verticiEsagono(pos);
       const [i,j] = [(pos & 0xf0) >> 4,pos & 0xf];
       const cIdx = (((1 + (-j + i))%3)+3)%3;
       const dimensioneTesto = (10);
 //
-      g.ctx.beginPath();
-      g.ctx.lineWidth = 1;
-      g.ctx.strokeStyle = '#000000ff';
-      g.ctx.fillStyle = colori[cIdx];
-      g.ctx.moveTo(v[0].x,v[0].y);
-      v.forEach(function (o) { g.ctx.lineTo(o.x,o.y); });
-      g.ctx.closePath();
-      g.ctx.fill();
-      g.ctx.stroke();
+      ctx.beginPath();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#000000ff';
+      ctx.fillStyle = colori[cIdx];
+      ctx.moveTo(v[0].x,v[0].y);
+      v.forEach(function (o) { ctx.lineTo(o.x,o.y); });
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 //
-      g.ctx.beginPath();
-      g.ctx.lineWidth = 1;
-      g.ctx.font = '' + dimensioneTesto + 'px monospace';
-      g.ctx.strokeStyle = colori[(cIdx+1)%3];
-      g.ctx.fillText  (i + "." + j, v[0].x, v[0].y + dimensioneTesto);
-      g.ctx.strokeText(i + "." + j, v[0].x, v[0].y + dimensioneTesto);
-      g.ctx.fill();
-      g.ctx.stroke();
+      ctx.beginPath();
+      ctx.lineWidth = 1;
+      ctx.font = '' + dimensioneTesto + 'px monospace';
+      ctx.strokeStyle = colori[(cIdx+1)%3];
+      ctx.fillText  (i + "." + j, v[0].x, v[0].y + dimensioneTesto);
+      ctx.strokeText(i + "." + j, v[0].x, v[0].y + dimensioneTesto);
+      ctx.fill();
+      ctx.stroke();
     }
 
-    function drawScacchiera(){
-      g.ctx.clearRect(0,0,c.width,c.height);
-      for(var i = 0; i <  6; i++){ drawCellaEsagonoByIdx((((5 + i) & 0xf) << 4) | 0); }
-      for(var i = 0; i <  7; i++){ drawCellaEsagonoByIdx((((4 + i) & 0xf) << 4) | 1); }
-      for(var i = 0; i <  8; i++){ drawCellaEsagonoByIdx((((3 + i) & 0xf) << 4) | 2); }
-      for(var i = 0; i <  9; i++){ drawCellaEsagonoByIdx((((2 + i) & 0xf) << 4) | 3); }
-      for(var i = 0; i < 10; i++){ drawCellaEsagonoByIdx((((1 + i) & 0xf) << 4) | 4); }
-      for(var i = 0; i < 11; i++){ drawCellaEsagonoByIdx((((0 + i) & 0xf) << 4) | 5); }
-      for(var i = 0; i < 10; i++){ drawCellaEsagonoByIdx((((0 + i) & 0xf) << 4) | 6); }
-      for(var i = 0; i <  9; i++){ drawCellaEsagonoByIdx((((0 + i) & 0xf) << 4) | 7); }
-      for(var i = 0; i <  8; i++){ drawCellaEsagonoByIdx((((0 + i) & 0xf) << 4) | 8); }
-      for(var i = 0; i <  7; i++){ drawCellaEsagonoByIdx((((0 + i) & 0xf) << 4) | 9); }
-      for(var i = 0; i <  6; i++){ drawCellaEsagonoByIdx((((0 + i) & 0xf) << 4) |10); }
+    function drawScacchiera(ctx){
+      ctx.clearRect(0,0,c.width,c.height);
+      for(var i = 0; i <  6; i++){ drawCellaEsagonoByIdx(ctx, (((5 + i) & 0xf) << 4) | 0); }
+      for(var i = 0; i <  7; i++){ drawCellaEsagonoByIdx(ctx, (((4 + i) & 0xf) << 4) | 1); }
+      for(var i = 0; i <  8; i++){ drawCellaEsagonoByIdx(ctx, (((3 + i) & 0xf) << 4) | 2); }
+      for(var i = 0; i <  9; i++){ drawCellaEsagonoByIdx(ctx, (((2 + i) & 0xf) << 4) | 3); }
+      for(var i = 0; i < 10; i++){ drawCellaEsagonoByIdx(ctx, (((1 + i) & 0xf) << 4) | 4); }
+      for(var i = 0; i < 11; i++){ drawCellaEsagonoByIdx(ctx, (((0 + i) & 0xf) << 4) | 5); }
+      for(var i = 0; i < 10; i++){ drawCellaEsagonoByIdx(ctx, (((0 + i) & 0xf) << 4) | 6); }
+      for(var i = 0; i <  9; i++){ drawCellaEsagonoByIdx(ctx, (((0 + i) & 0xf) << 4) | 7); }
+      for(var i = 0; i <  8; i++){ drawCellaEsagonoByIdx(ctx, (((0 + i) & 0xf) << 4) | 8); }
+      for(var i = 0; i <  7; i++){ drawCellaEsagonoByIdx(ctx, (((0 + i) & 0xf) << 4) | 9); }
+      for(var i = 0; i <  6; i++){ drawCellaEsagonoByIdx(ctx, (((0 + i) & 0xf) << 4) |10); }
     }
 
     function coloraUltimaMossa(){
+      cCtx.clearRect(0,0,c.width,c.height);
       const nPezzi = 36;
-      const c = cronologia.value;
-      const u = c.length - 7;
-      if(!((MOSSA_LEN * nPezzi) < c.length)) {
+      const cr = cronologia.value;
+      const u = cr.length - 7;
+      if(!((MOSSA_LEN * nPezzi) < cr.length)) {
         return;
       }
       var p0 = 0;
-      p0 |= ((c.charCodeAt(u + 2) - 65) & 0xf) << 4;
-      p0 |= ((c.charCodeAt(u + 3) - 65) & 0xf);
+      p0 |= ((cr.charCodeAt(u + 2) - 65) & 0xf) << 4;
+      p0 |= ((cr.charCodeAt(u + 3) - 65) & 0xf);
       var p1 = 0;
-      p1 |= ((c.charCodeAt(u + 4) - 65) & 0xf) << 4;
-      p1 |= ((c.charCodeAt(u + 5) - 65) & 0xf);
+      p1 |= ((cr.charCodeAt(u + 4) - 65) & 0xf) << 4;
+      p1 |= ((cr.charCodeAt(u + 5) - 65) & 0xf);
       coloraBordoEsagono(p0,'#00ff00');
       coloraBordoEsagono(p1,'#00ff00');
     }
 
-    function drawPezzi(){
+    function drawPezzi(ctx){
+      ctx.clearRect(0,0,c.width,c.height);
       const dimensioneTesto = (g.latoEsagonoCos * 2);
       const allineamentoX = 0;
       const allineamentoY = -8;
       for(pos of Object.keys(g.pezzi)){
         const [n,c] = g.pezzi[pos];
         const [x,y] = posByIdx(pos);
-        g.ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
+        ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
         if ('B' == c) {
           // BIANCO
-          g.ctx.lineWidth   = 2;
-          g.ctx.fillStyle   = '#dddddd';
-          g.ctx.strokeStyle = '#222222';
+          ctx.lineWidth   = 2;
+          ctx.fillStyle   = '#dddddd';
+          ctx.strokeStyle = '#222222';
         } else {
           // NERO
-          g.ctx.lineWidth   = 2;
-          g.ctx.fillStyle   = '#222222';
-          g.ctx.strokeStyle = '#dddddd';
+          ctx.lineWidth   = 2;
+          ctx.fillStyle   = '#222222';
+          ctx.strokeStyle = '#dddddd';
         }
-        g.ctx.beginPath();
-        g.ctx.fillText  (n, x + allineamentoX, y + dimensioneTesto + allineamentoY);
-        g.ctx.strokeText(n, x + allineamentoX, y + dimensioneTesto + allineamentoY);
-        g.ctx.fill();
-        g.ctx.stroke();
+        ctx.beginPath();
+        ctx.fillText  (n, x + allineamentoX, y + dimensioneTesto + allineamentoY);
+        ctx.strokeText(n, x + allineamentoX, y + dimensioneTesto + allineamentoY);
+        ctx.fill();
+        ctx.stroke();
       }
     }
 
@@ -825,11 +837,12 @@ c.addEventListener('mousedown', function(e) {
     const x = (event.clientX - rect.left) * c.width  / rect.width ;
     const y = (event.clientY - rect.top ) * c.height / rect.height;
     const pos = idxByPos(x,y);
-    drawScacchiera();
-    drawPezzi();
-    selezionaPezzo(x,y);
     coloraUltimaMossa();
+    selezionaPezzo(x,y);
 })
+
+    drawScacchiera(cScacchiera.getContext("2d"));
+    drawPezzi(gPezziCtx);
 
     // =============================================
     // MAIN
