@@ -23,16 +23,16 @@ if (!$b_outdir_exists && mkdir($outdir,0700)) {
 }
 chdir($outdir);
 
-if(!array_key_exists('method',$_GET)){
+if(!array_key_exists('a',$_GET)){
   $a_partite = '*';
   $a_partite = glob($a_partite);
   $a_partite = array_map(fn($a) => <<<eof
     <div class='wrap' >
       <h3>$a</h3>
       <div class='giocaCome'>
-        <a href='?method=partita&partita=$a&g=B'>Gioca come bianco</a>
+        <a href='?a=B{$a}P'>Gioca come bianco</a>
         <div> &lt;--&gt; </div>
-        <a href='?method=partita&partita=$a&g=N'>Gioca come nero</a>
+        <a href='?a=N{$a}P'>Gioca come nero</a>
       </div>
     </div>
     eof,$a_partite);
@@ -51,7 +51,7 @@ if(!array_key_exists('method',$_GET)){
     </head>
     <body>
       <h1> Scacchi Esagonali </h1>
-      <a href='?method=nuova_partita'>Crea una nuova partita</a>
+      <a href='?a=N'>Crea una nuova partita</a>
       <h2> Partite attive </h2>
       {$a_partite}
     </body>
@@ -61,70 +61,43 @@ if(!array_key_exists('method',$_GET)){
   die();
 }
 
-$method = 'method';
-$method = $_GET[$method];
-switch($method){
-case 'nuova_partita': {
-    $condizioni_iniziali = <<<eof
-      PBBKBK PBCJCJ PBDIDI PBEHEH PBFGFG PBGGGG PBHGHG PBIGIG PBJGJG
-      PNBEBE PNCECE PNDEDE PNEEEE PNFEFE PNGDGD PNHCHC PNIBIB PNJAJA
-      ABFKFK ABFJFJ ABFIFI
-      TBCKCK TBIHIH
-      CBDKDK CBHIHI
-      DBEKEK
-      RBGJGJ
-      ANFAFA ANFBFB ANFCFC
-      TNCDCD TNIAIA
-      CNDCDC CNHAHA
-      DNEBEB
-      RNGAGA\n
-      eof;
-    $nuova_partita = '*';
-    $nuova_partita = glob($nuova_partita);
-    $nuova_partita = count($nuova_partita);
-    $nuova_partita = sprintf('%04d',$nuova_partita);
-    echo "$nuova_partita\n";
-    $nuova_partita = file_put_contents($nuova_partita,$condizioni_iniziali);
-    if(false === $nuova_partita){ die('ERRORE: SCRITTURA DI UNA NUOVA PARTITA'); }
-    header('Location: ?');
-    die();
-  } break;
-case 'muovi': {
-    $mossa = $_GET['mossa'];
-    $is_mossa_valida = preg_match('/[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/',$mossa);
-    if (1 != $is_mossa_valida) { die('ERRORE: MOSSA INVALIDA'); }
-    $partita = 'partita';
-    $partita_id = $_GET[$partita];
-    $partita = fopen($partita_id,'a');
-    if(false === $partita) { die("ERRORE: NELL'APERTURA DI $partita_id"); }
-    if(false === fputs($partita,$mossa)) { die("errore: scrivendo la mossa"); }
-    if(false === fputs($partita,"\n")) { die("errore: scrivendo il char di fine mossa"); }
-    fclose($partita);
-    $ultimamossa = $mossa;
-    if(false === ($partita = fopen($partita_id,'r'))) {die("error: fopen");}
-    if(0 != fseek($partita,-(strlen($mossa)+1),SEEK_END)) {die("error: fseek");}
-    $mossa = fread($partita,strlen($mossa));
-    if (false === $mossa) { die("errore mossa è falso"); }
-    if (0 != strcmp($mossa,$ultimamossa)) {
-      die("errore mossa scritta differisce dalla mossa riletta\n-$mossa\n-$ultimamossa");
-    }
-    echo $mossa;
-    fclose($partita);
-    exit(0);
-  } break;
-case 'leggi_mosse' :{
-$partita = 'partita';
-$partita = $_GET[$partita];
-  echo file_get_contents($partita);
+$a = $_GET['a'];
+if ('N' === $a) {
+  $condizioni_iniziali = <<<eof
+    PBBKBK PBCJCJ PBDIDI PBEHEH PBFGFG PBGGGG PBHGHG PBIGIG PBJGJG
+    PNBEBE PNCECE PNDEDE PNEEEE PNFEFE PNGDGD PNHCHC PNIBIB PNJAJA
+    ABFKFK ABFJFJ ABFIFI
+    TBCKCK TBIHIH
+    CBDKDK CBHIHI
+    DBEKEK
+    RBGJGJ
+    ANFAFA ANFBFB ANFCFC
+    TNCDCD TNIAIA
+    CNDCDC CNHAHA
+    DNEBEB
+    RNGAGA\n
+    eof;
+  $nuova_partita = '*';
+  $nuova_partita = glob($nuova_partita);
+  $nuova_partita = count($nuova_partita);
+  $nuova_partita = sprintf('%04d',$nuova_partita);
+  echo "$nuova_partita\n";
+  $nuova_partita = file_put_contents($nuova_partita,$condizioni_iniziali);
+  if(false === $nuova_partita){ die('ERRORE: SCRITTURA DI UNA NUOVA PARTITA'); }
+  header('Location: ?');
+  die();
+}
+
+$l = strlen($a);
+$c = $a[$l - 1];
+$p = substr($a,$l - 1 - 4,4);
+switch($c){
+case 'L' :{
+  echo file_get_contents($p);
   break;
 };
-case 'ultima_mossa': {
-    $partita = 'partita';
-    if (!array_key_exists($partita,$_GET)) {
-      die('errore nessuna partita specificata');
-    }
-    $partita = $_GET[$partita];
-    $partita = fopen($partita,'r');
+case 'U': {
+    $partita = fopen($p,'r');
     if(false === $partita) {
       die("errore nell'apertura di $partita");
     }
@@ -134,28 +107,30 @@ case 'ultima_mossa': {
     echo $mossa;
     fclose($partita);
   } break;
-case 'partita': {
-    $giocatore = 'g';
-    if(!array_key_exists($giocatore,$_GET)) {
-?>
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  </head>
-  <body>
-    <a href='<?php echo $_SERVER['REQUEST_URI']; ?>&g=B'>Bianco</a>
-    <a href='<?php echo $_SERVER['REQUEST_URI']; ?>&g=N'>Nero</a>
-  </body>
-</html>
-<?php
-      break;
+case 'M': {
+    $mossa = substr($a,$l-1-4-6,6);
+    $is_mossa_valida = preg_match('/[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/',$mossa);
+    if (1 != $is_mossa_valida) { die('ERRORE: MOSSA INVALIDA'); }
+    $partita = fopen($p,'a');
+    if(false === $partita) { die("ERRORE: NELL'APERTURA DI $p"); }
+    if(false === fputs($partita,$mossa)) { die("errore: scrivendo la mossa"); }
+    if(false === fputs($partita,"\n")) { die("errore: scrivendo il char di fine mossa"); }
+    fclose($partita);
+    $ultimamossa = $mossa;
+    if(false === ($partita = fopen($p,'r'))) {die("error: fopen");}
+    if(0 != fseek($partita,-(strlen($mossa)+1),SEEK_END)) {die("error: fseek");}
+    $mossa = fread($partita,strlen($mossa));
+    if (false === $mossa) { die("errore mossa è falso"); }
+    if (0 != strcmp($mossa,$ultimamossa)) {
+      die("errore mossa scritta differisce dalla mossa riletta\n-$mossa\n-$ultimamossa");
     }
-    $giocatore = $_GET[$giocatore];
-    $partita = 'partita';
-    $partita = $_GET[$partita];
-    $partita_id = $partita;
-    $partita = file_get_contents($partita);
+    echo $mossa;
+    fclose($partita);
+    die(0);
+  } break;
+case 'P': {
+    $giocatore = substr($a,$l-1-4-1,1);
+    $partita = file_get_contents($p);
     $debug = array_key_exists('debug',$_GET) ? $_GET['debug'] : 0;
 ?>
 <!DOCTYPE html>
@@ -205,11 +180,6 @@ case 'partita': {
     </style>
   </head>
   <body>
-    <select class=giocatore id='htmlGiocatore'>
-      <option value='s'>Spettatore</option>
-      <option value='B'>Bianco</option>
-      <option value='N'>Nero</option>
-    </select>
     <div class=tavola>
     <canvas class=tavola width=420 height=420 id=cScacchiera></canvas>
     <canvas class=tavola width=420 height=420 id=cPezzi     ></canvas>
@@ -217,7 +187,7 @@ case 'partita': {
     </div>
     <form>
       <input type=text readonly name="method"  value="muovi">
-      <input type=text readonly name="partita" value="<?php echo $partita_id; ?>">
+      <input type=text readonly name="partita" value="<?php echo $p; ?>">
       <input type=text readonly name="mossa"   id=mossa pattern="[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]" value="">
       <script>
         const mossaChrArr = [' ',' ',' ',' ',' ',' '];
@@ -293,46 +263,57 @@ case 'partita': {
       <input type=submit value='muovi'>
     </form>
     <textarea id=cronologia readonly></textarea>
-<div class=d>
-<?php
-foreach(
-[ ['TBAAFF-TNAAEB-RBAAJG-', 't: mov']
-, ['CBAAFF-TNAAEB-RBAAJG-', 'c: mov']
-, ['ABAAFF-TNAAEB-RBAAJG-', 'a: mov']
-, ['DBAAFF-TNAAEB-RBAAJG-', 'd: mov']
-, ['RBAAFF-CNAAFA-TBAAJG-', 'r: mov']
-, ['TBAAFF-TNAAFD-RBAAEF-', 't: cattura / alleato']
-, ['CBAAFF-TNAAED-RBAAGC-', 'c: cattura / alleato']
-, ['ABAAFF-TNAAEE-RBAADG-', 'a: cattura / alleato']
-, ['DBAAFF-TNAAFD-RBAAEF-', 'd: cattura / alleato']
-, ['RBAAFF-TNAAEE-TBAADG-', 'r: cattura / alleato']
-, ['TNAAFF-TNAADF-TBAAFD-RBAAJG-', 't nemico: cattura / alleato']
-, ['CNAAFF-TBAAED-TNAAGC-RBAAJG-', 'c nemico: cattura / alleato']
-, ['ANAAFF-TBAAEE-TNAAGD-RBAAJG-', 'a nemico: cattura / alleato']
-, ['DNAAFF-TBAAFD-TNAAGD-RBAAJG-', 'd nemico: cattura / alleato']
-, ['RNAAFF-TBAAEE-TNAAGD-RBAAJG-', 'r nemico: cattura / alleato']
-, ['PNAAFF-RBAAJG-', 'p nemico: mov']
-, ['PNAAFE-RBAAJG-', 'p nemico: mov init']
-, ['PNAAFE-TNAAEF-CBAAGE-CBAAFF-RBAAJG-', 'p nemico: cattura / alleato']
-, ['RBAAFG-PNAAFE-CNAAEF-', 're vs pedone nemico']
-, ['TBAAFF-TNAADF-RBAAHF-', 'torre in difesa del re']
-, ['TBAAFE-TNAADF-RBAAHF-', 'torre deve difendere il re']
-, ['PBAAFF-RBAAJG-', 'p: mov']
-, ['PBAAFG-RBAAJG-', 'p: mov init']
-, ['PBAAFG-CNAAEG-CBAAGF-CNAAFF-RBAAJG-', 'p: cattura alleato']
-, ['PBAAFG-TNAAEG-RBAAJG-', 'p in difesa del re']
-, ['PBAAFG-TNAAEF-RBAAKF-', 'p deve difendere il re']
-] as $a){
-[$m,$n] = $a;
-echo "<a href='?method=partita&partita=$partita_id&g=B&debug=3&t=$m'>$n</a>";
-}
-?>
+<div class=d id=menuDebug>
+  <script>
+    function debugMovimenti(b){
+      const txt = b.value;
+      g.pezzi = {};
+      gColoreGiocatore = 'B';
+      eseguiMosse(txt);
+      updateMovimenti();
+      cCtx.clearRect(0,0,c.width,c.height);
+      drawPezzi(gPezziCtx);
+      var p0 = (txt.charCodeAt(4) - 65) << 4 | (txt.charCodeAt(5) - 65);
+      const colore = g.pezzi[p0].at(1) == gColoreGiocatore ? '#00ff00' : '#ff0000';
+      for(const p of g.movimenti[p0]){
+        coloraBordoEsagono(p,colore);
+      }
+    }
+  </script>
+  <button onclick='debugMovimenti(this)' value='TBAAFF-TNAAEB-RBAAJG-RNAAAG-'              >t: mov                     </button>
+  <button onclick='debugMovimenti(this)' value='CBAAFF-TNAAEB-RBAAJG-RNAAAG-'              >c: mov                     </button>
+  <button onclick='debugMovimenti(this)' value='ABAAFF-TNAAEB-RBAAJG-RNAAAG-'              >a: mov                     </button>
+  <button onclick='debugMovimenti(this)' value='DBAAFF-TNAAEB-RBAAJG-RNAAAG-'              >d: mov                     </button>
+  <button onclick='debugMovimenti(this)' value='RBAAFF-CNAAFA-TBAAJG-RNAAAG-'              >r: mov                     </button>
+  <button onclick='debugMovimenti(this)' value='TBAAFF-TNAAFD-RBAAEF-RNAAAG-'              >t: cattura / alleato       </button>
+  <button onclick='debugMovimenti(this)' value='CBAAFF-TNAAED-RBAAGC-RNAAAG-'              >c: cattura / alleato       </button>
+  <button onclick='debugMovimenti(this)' value='ABAAFF-TNAAEE-RBAADG-RNAAAG-'              >a: cattura / alleato       </button>
+  <button onclick='debugMovimenti(this)' value='DBAAFF-TNAAFD-RBAAEF-RNAAAG-'              >d: cattura / alleato       </button>
+  <button onclick='debugMovimenti(this)' value='RBAAFF-TNAAEE-TBAADG-RNAAAG-'              >r: cattura / alleato       </button>
+  <button onclick='debugMovimenti(this)' value='TNAAFF-TNAADF-TBAAFD-RBAAJG-RNAAAG-'       >t nemico: cattura / alleato</button>
+  <button onclick='debugMovimenti(this)' value='CNAAFF-TBAAED-TNAAGC-RBAAJG-RNAAAG-'       >c nemico: cattura / alleato</button>
+  <button onclick='debugMovimenti(this)' value='ANAAFF-TBAAEE-TNAAGD-RBAAJG-RNAAAG-'       >a nemico: cattura / alleato</button>
+  <button onclick='debugMovimenti(this)' value='DNAAFF-TBAAFD-TNAAGD-RBAAJG-RNAAAG-'       >d nemico: cattura / alleato</button>
+  <button onclick='debugMovimenti(this)' value='RNAAFF-TBAAEE-TNAAGD-RBAAJG-RNAAAG-'       >r nemico: cattura / alleato</button>
+  <button onclick='debugMovimenti(this)' value='PNAAFF-RBAAJG-RNAAAG-'                     >p nemico: mov              </button>
+  <button onclick='debugMovimenti(this)' value='PNAAFE-RBAAJG-RNAAAG-'                     >p nemico: mov init         </button>
+  <button onclick='debugMovimenti(this)' value='PNAAFE-TNAAEF-CBAAGE-CBAAFF-RBAAJG-RNAAAG-'>p nemico: cattura / alleato</button>
+  <button onclick='debugMovimenti(this)' value='RBAAFG-PNAAFE-CNAAEF-RNAAAG-'              >re vs pedone nemico        </button>
+  <button onclick='debugMovimenti(this)' value='TBAAFF-TNAADF-RBAAHF-RNAAAG-'              >torre in difesa del re     </button>
+  <button onclick='debugMovimenti(this)' value='TBAAFE-TNAADF-RBAAHF-RNAAAG-'              >torre deve difendere il re </button>
+  <button onclick='debugMovimenti(this)' value='PBAAFF-RBAAJG-RNAAAG-'                     >p: mov                     </button>
+  <button onclick='debugMovimenti(this)' value='PBAAFG-RBAAJG-RNAAAG-'                     >p: mov init                </button>
+  <button onclick='debugMovimenti(this)' value='PBAAFG-CNAAEG-CBAAGF-CNAAFF-RBAAJG-RNAAAG-'>p: cattura alleato         </button>
+  <button onclick='debugMovimenti(this)' value='PBAAFG-TNAAEG-RBAAJG-RNAAAG-'              >p in difesa del re         </button>
+  <button onclick='debugMovimenti(this)' value='PBAAFG-TNAAEF-RBAAKF-RNAAAG-'              >p deve difendere il re     </button>
 </div>
     <script>
 
 const MOSSA_LEN = 'PBAAAA.'.length;
 const MOSSA_RGX = /[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/;
-var gPollCount = 0;
+var   gPollCount = 0;
+const gUrl = window.location.search;
+var   gColoreGiocatore = gUrl[gUrl.length -1 -4 -1];
 const gPosInizialiPedoni = {
   'N' : new Set([0x14,0x24,0x34,0x44,0x54,0x63,0x72,0x81,0x90])
 , 'B' : new Set([0x1a,0x29,0x38,0x47,0x56,0x66,0x76,0x86,0x96])
@@ -391,10 +372,10 @@ const cCtx = c.getContext("2d");
     function pollUltimaMossa () {
       gPollCount = 0;
       setTimeout(function loop() {
-        httpGet("?method=ultima_mossa&partita=<?php echo "$partita_id"; ?>",function (ultimaMossa){
+        httpGet("?a=<?php echo "$p"; ?>U",function (ultimaMossa){
           gPollCount += 1;
           const delay = 32 - Math.clz32(gPollCount);
-          if (g.giocatore.value == ultimaMossa.at(1)) {
+          if (gColoreGiocatore == ultimaMossa.at(1)) {
             setTimeout(loop,1000*delay);
           } else {
             cronologia.value += ultimaMossa;
@@ -421,26 +402,13 @@ const cCtx = c.getContext("2d");
       g.pezzi = {};
       g.movimenti = {};
       g.pezzoAttivo = 0;
-      g.giocatore = htmlGiocatore;
-      g.giocatore.value = "<?php echo $giocatore; ?>";
-      httpGet("/?method=leggi_mosse&partita=<?php echo $partita_id; ?>",function (txt) {
+      httpGet("/?a=<?php echo $p; ?>L",function (txt) {
 <?php if (2 == $debug) { ?>
         for (var i = 0; i < 12; i++) {
           for (var j = 0; j < 12; j++) {
             const p = (i & 0xf) << 4 | (j & 0xf);
             coloraBordoEsagono(p,cellaFuoriTavola(p) ? '#ff0000' : '#00ff00');
           }
-        }
-<?php } else if (3 == $debug) { ?>
-txt = <?php echo json_encode($_GET['t']); ?>;
-        cronologia.innerHTML = txt;
-        eseguiMosse(txt);
-        updateMovimenti();
-        drawPezzi(gPezziCtx);
-        var p0 = (txt.charCodeAt(4) - 65) << 4 | (txt.charCodeAt(5) - 65);
-        const colore = g.pezzi[p0].at(1) == g.giocatore.value ? '#00ff00' : '#ff0000';
-        for(const p of g.movimenti[p0]){
-          coloraBordoEsagono(p,colore);
         }
 <?php } else { ?>
         cronologia.value = txt;
@@ -450,7 +418,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         const cr = cronologia.value;
         const u = cr.length - 7;
         coloraUltimaMossa();
-        if (cr.at(u + 1) == g.giocatore.value) {
+        if (cr.at(u + 1) == gColoreGiocatore) {
           pollUltimaMossa();
         }
 <?php } ?>
@@ -544,7 +512,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
     function selezionaPezzo(x,y){
       const cr = cronologia.value;
       const u = cr.length - 7;
-      if (cr.at(u + 1) == g.giocatore.value) {
+      if (cr.at(u + 1) == gColoreGiocatore) {
         return;
       }
       const p1 = idxByPos(x,y);
@@ -561,7 +529,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           mossaBytes[3] = 65 +  (p1 & 0xf);
           const decoder = new TextDecoder('ascii');
           const mossa = g.pezzi[p0] + decoder.decode(mossaBytes);;
-          const url = "/?method=muovi&partita=<?php echo $partita_id; ?>&mossa=" + mossa;
+          const url = "/?a="+mossa+"<?php echo $p; ?>M";
           httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
             if (mossaSrv == mossa) {
               g.pezzoAttivo = 0;
@@ -573,7 +541,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
               coloraUltimaMossa();
               pollUltimaMossa();
             } else {
-              alert("Errore ultima mossa");
+              console.log("Errore ultima mossa",mossa,mossaSrv);
             }
           });
           return;
@@ -583,7 +551,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       if(!(p1 in g.pezzi)) {
         return;
       }
-      if(g.giocatore.value != g.pezzi[p1].at(1)){
+      if(gColoreGiocatore != g.pezzi[p1].at(1)){
         return;
       }
       g.pezzoAttivo = p1;
@@ -591,7 +559,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       const movimenti = g.movimenti[p1];
       for(const pos of movimenti){
         const cellaOccupata = pos in g.pezzi;
-        if (cellaFuoriTavola(pos) || (cellaOccupata && g.pezzi[pos].at(1) == g.giocatore.value)) {
+        if (cellaFuoriTavola(pos) || (cellaOccupata && g.pezzi[pos].at(1) == gColoreGiocatore)) {
           continue;
         }
         if(cellaOccupata){
@@ -706,7 +674,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
       var idxRe = 0;
       for(var pos of Object.keys(g.pezzi)){
         var pezzo = g.pezzi[pos];
-        if(pezzo.at(1) != g.giocatore.value){
+        if(pezzo.at(1) != gColoreGiocatore){
           if ('P' == pezzo.at(0)) {
             pedoniNemici.push(pos);
           } else {
@@ -722,7 +690,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
           }
         }
       }
-      pDirezione = ('B' == g.giocatore.value) ? -1 : 1;
+      pDirezione = ('N' == gColoreGiocatore) ? -1 : 1;
       for(var p0 of pedoniNemici) {
         p0 = Number(p0);
         var possibili = [];
@@ -770,7 +738,7 @@ txt = <?php echo json_encode($_GET['t']); ?>;
         }
         g.movimenti[p0] = possibili;
       }
-      pDirezione = ('B' == g.giocatore.value) ? 1 : -1;
+      pDirezione = ('B' == gColoreGiocatore) ? 1 : -1;
       for(var p0 of pedoniAlleati) {
         p0 = Number(p0);
         var possibili = [];
