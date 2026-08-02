@@ -264,6 +264,7 @@ case 'P': {
     </form>
     <textarea id=cronologia readonly></textarea>
 <div class=d id=menuDebug>
+  <p><input type=checkbox id=gDebug>Linee di debug</p>
   <script>
     function debugMovimenti(b){
       const txt = b.value;
@@ -403,14 +404,6 @@ const cCtx = c.getContext("2d");
       g.movimenti = {};
       g.pezzoAttivo = 0;
       httpGet("/?a=<?php echo $p; ?>L",function (txt) {
-<?php if (2 == $debug) { ?>
-        for (var i = 0; i < 12; i++) {
-          for (var j = 0; j < 12; j++) {
-            const p = (i & 0xf) << 4 | (j & 0xf);
-            coloraBordoEsagono(p,cellaFuoriTavola(p) ? '#ff0000' : '#00ff00');
-          }
-        }
-<?php } else { ?>
         cronologia.value = txt;
         eseguiMosse(txt);
         updateMovimenti();
@@ -421,7 +414,6 @@ const cCtx = c.getContext("2d");
         if (cr.at(u + 1) == gColoreGiocatore) {
           pollUltimaMossa();
         }
-<?php } ?>
       });
       return g;
     }();
@@ -440,21 +432,21 @@ const cCtx = c.getContext("2d");
         const a0               = 1 / Math.sqrt(3);
         const bAscZero = 0 + g.ypad - g.latoEsagonoCos + 6;
         const bAsc = y - (a0 * x);
-<?php if(1 == $debug) { ?>
-        debugLine(x,Infinity,'#00ff00');
-        debugLine(g.xpad,Infinity,'#0000ff');
-        debugLine(bAscZero,a0);
-        debugLine(bAsc,a0,'#00ff00');
-<?php } ?>
+if(gDebug.checked) {
+debugLine(x,Infinity,'#00ff00');
+debugLine(g.xpad,Infinity,'#0000ff');
+debugLine(bAscZero,a0);
+debugLine(bAsc,a0,'#00ff00');
+}
         const j0 = Math.floor((bAsc - bAscZero) / altezzaEsagono);
         const i0 = Math.floor((x - g.xpad) / larghezzaEsagono);
-<?php if(1 == $debug) { ?>
-        const x0 = g.xpad + i0 * larghezzaEsagono;
-        debugLine(j0 * altezzaEsagono + bAscZero,a0);
-        debugLine((j0 + 1) * altezzaEsagono + bAscZero,a0);
-        debugLine(x0,Infinity,'#0000ff');
-        debugLine(x0 + larghezzaEsagono,Infinity,'#0000ff');
-<?php } ?>
+if(gDebug.checked) {
+const x0 = g.xpad + i0 * larghezzaEsagono;
+debugLine(j0 * altezzaEsagono + bAscZero,a0);
+debugLine((j0 + 1) * altezzaEsagono + bAscZero,a0);
+debugLine(x0,Infinity,'#0000ff');
+debugLine(x0 + larghezzaEsagono,Infinity,'#0000ff');
+}
         let v = verticiEsagono(((i0 & 0xf) << 4) | (j0 & 0xf));
         v = v.map(o => ({x:o.x-g.xpad,y:o.y-g.ypad}));
         v = v[3];
@@ -464,11 +456,11 @@ const cCtx = c.getContext("2d");
         const yAsc =  a1 * x + bAsc0;
         const yDis = -a1 * x + bDis0;
         const yCst = g.ypad + v.y;
-<?php if(1 == $debug) { ?>
-        debugLine(yAsc,0,'#00ff00');
-        debugLine(yDis,0,'#0000ff');
-        debugLine(yCst,0,);
-<?php } ?>
+if(gDebug.checked) {
+debugLine(yAsc,0,'#00ff00');
+debugLine(yDis,0,'#0000ff');
+debugLine(yCst,0,);
+}
         var i = i0 + (yDis < y && y < yAsc);
         var j = j0 + (yCst < y && yAsc < y);
         if (i != (i & 0xf)) { i = 0xf; }
