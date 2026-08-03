@@ -77,10 +77,7 @@ if ('N' === $a) {
     DNEBEB
     RNGAGA\n
     eof;
-  $nuova_partita = '*';
-  $nuova_partita = glob($nuova_partita);
-  $nuova_partita = count($nuova_partita);
-  $nuova_partita = sprintf('%04d',$nuova_partita);
+  $nuova_partita = chr(65 + count(glob('*')));
   echo "$nuova_partita\n";
   $nuova_partita = file_put_contents($nuova_partita,$condizioni_iniziali);
   if(false === $nuova_partita){ die('ERRORE: SCRITTURA DI UNA NUOVA PARTITA'); }
@@ -90,7 +87,7 @@ if ('N' === $a) {
 
 $l = strlen($a);
 $c = $a[$l - 1];
-$p = substr($a,$l - 1 - 4,4);
+$p = $a[$l - 1 - 1];
 switch($c){
 case 'L' :{
   echo file_get_contents($p);
@@ -180,17 +177,20 @@ case 'P': {
     </style>
   </head>
   <body>
+<script>
+const gUrl = window.location.search;
+const gPartita = gUrl[gUrl.length -1 -1];
+var   gColoreGiocatore = gUrl[gUrl.length -1 -1 -1];
+</script>
     <div class=tavola>
     <canvas class=tavola width=420 height=420 id=cScacchiera></canvas>
     <canvas class=tavola width=420 height=420 id=cPezzi     ></canvas>
     <canvas class=tavola width=420 height=420 id=c          ></canvas>
     </div>
     <form>
-      <input type=text readonly name="method"  value="muovi">
-      <input type=text readonly name="partita" value="<?php echo $p; ?>">
-      <input type=text readonly name="mossa"   id=mossa pattern="[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]" value="">
+      <input type=text readonly name="mossa"   id=mossa pattern="[PTCADR][BN][A-Z][A-Z][A-Z][A-Z][A-Z]M" value="">
       <script>
-        const mossaChrArr = [' ',' ',' ',' ',' ',' '];
+        const mossaChrArr = [' ',' ',' ',' ',' ',' ',gPartita,'M'];
         mossa.value = mossaChrArr.join('');
         function setL(i,o){ mossaChrArr[i] = o.innerHTML; mossa.value = mossaChrArr.join(''); }
         function setN(i,n){ mossaChrArr[i] = String.fromCharCode(65 + n); mossa.value = mossaChrArr.join(''); }
@@ -313,8 +313,6 @@ case 'P': {
 const MOSSA_LEN = 'PBAAAA.'.length;
 const MOSSA_RGX = /[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/;
 var   gPollCount = 0;
-const gUrl = window.location.search;
-var   gColoreGiocatore = gUrl[gUrl.length -1 -4 -1];
 const gPosInizialiPedoni = {
   'N' : new Set([0x14,0x24,0x34,0x44,0x54,0x63,0x72,0x81,0x90])
 , 'B' : new Set([0x1a,0x29,0x38,0x47,0x56,0x66,0x76,0x86,0x96])
@@ -373,7 +371,7 @@ const cCtx = c.getContext("2d");
     function pollUltimaMossa () {
       gPollCount = 0;
       setTimeout(function loop() {
-        httpGet("?a=<?php echo "$p"; ?>U",function (ultimaMossa){
+        httpGet("?a="+gPartita+"U",function (ultimaMossa){
           gPollCount += 1;
           const delay = 32 - Math.clz32(gPollCount);
           if (gColoreGiocatore == ultimaMossa.at(1)) {
@@ -403,7 +401,7 @@ const cCtx = c.getContext("2d");
       g.pezzi = {};
       g.movimenti = {};
       g.pezzoAttivo = 0;
-      httpGet("/?a=<?php echo $p; ?>L",function (txt) {
+      httpGet("/?a="+gPartita+"L",function (txt) {
         cronologia.value = txt;
         eseguiMosse(txt);
         updateMovimenti();
@@ -521,7 +519,7 @@ debugLine(yCst,0,);
           mossaBytes[3] = 65 +  (p1 & 0xf);
           const decoder = new TextDecoder('ascii');
           const mossa = g.pezzi[p0] + decoder.decode(mossaBytes);;
-          const url = "/?a="+mossa+"<?php echo $p; ?>M";
+          const url = "/?a="+mossa+gPartita+"M";
           httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
             if (mossaSrv == mossa) {
               g.pezzoAttivo = 0;
