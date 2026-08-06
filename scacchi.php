@@ -6,10 +6,11 @@ error_reporting(E_ALL);
 
 $api = php_sapi_name();
 if('cli-server' !== $api){
-      $file = __FILE__;
-      $file = escapeshellarg($file);
-      shell_exec("php --server localhost:8888 $file");
-      die();
+  // $p = proc_start([],[]);
+  $file = __FILE__;
+  $file = escapeshellarg($file);
+  shell_exec("php --server localhost:8888 $file");
+  die();
 };
 
 $outdir = __DIR__ . '/.partite/';
@@ -105,9 +106,9 @@ case 'U': {
     fclose($partita);
   } break;
 case 'M': {
-    $mossa = substr($a,$l-1-4-6,6);
+    $mossa = substr($a,$l-1-1-6,6);
     $is_mossa_valida = preg_match('/[PTCADR][BN][A-Z][A-Z][A-Z][A-Z]/',$mossa);
-    if (1 != $is_mossa_valida) { die('ERRORE: MOSSA INVALIDA'); }
+    if (1 != $is_mossa_valida) { die('ERRORE: MOSSA INVALIDA: '.$mossa); }
     $partita = fopen($p,'a');
     if(false === $partita) { die("ERRORE: NELL'APERTURA DI $p"); }
     if(false === fputs($partita,$mossa)) { die("errore: scrivendo la mossa"); }
@@ -121,8 +122,10 @@ case 'M': {
     if (0 != strcmp($mossa,$ultimamossa)) {
       die("errore mossa scritta differisce dalla mossa riletta\n-$mossa\n-$ultimamossa");
     }
-    echo $mossa;
     fclose($partita);
+    echo $mossa;
+    $a = socket_create(AF_UNIX,SOCK_DGRAM,0);
+    socket_sendto($a,$mossa,strlen($mossa),0,'websocket.stdin');
     die(0);
   } break;
 case 'P': {
@@ -160,20 +163,16 @@ case 'P': {
       select.giocatore {
         display: none;
       }
-
       body { display : flex; }
-
       div.d {
         height: 400px;
         display:flex;
         flex-direction : column;
         overflow : scroll;
       }
-
       @media (max-width: 768px) {
         body { flex-direction : column; }
       }
-
     </style>
   </head>
   <body>
@@ -385,12 +384,6 @@ var gPezzoAttivo = 0;
           if (gColoreGiocatore == ultimaMossa.at(1)) {
             setTimeout(loop,1000*delay);
           } else {
-            cronologia.value += ultimaMossa;
-            cronologia.value += "\n";
-            eseguiMosse(ultimaMossa);
-            updateMovimenti();
-            drawPezzi(gPezziCtx);
-            coloraUltimaMossa();
           }
         });
       },1000);
@@ -509,7 +502,7 @@ debugLine(yCst,0,);
               updateMovimenti();
               drawPezzi(gPezziCtx);
               coloraUltimaMossa();
-              pollUltimaMossa();
+              // pollUltimaMossa();
             } else {
               console.log("Errore ultima mossa",mossa,mossaSrv);
             }
@@ -797,6 +790,21 @@ c.addEventListener('mousedown', function(e) {
         pollUltimaMossa();
       }
     });
+
+var gWs = new WebSocket("http://localhost:8889");
+gWs.onmessage = function (e) {
+  const ultimaMossa = e.data;
+  if (6 != ultimaMossa.length) {
+    alert('errore websocket: '+ultimaMossa);
+    return;
+  }
+  cronologia.value += ultimaMossa;
+  cronologia.value += "\n";
+  eseguiMosse(ultimaMossa);
+  updateMovimenti();
+  drawPezzi(gPezziCtx);
+  coloraUltimaMossa();
+};
 
     </script>
 <?php
