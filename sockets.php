@@ -4,69 +4,6 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-// $server = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-// socket_bind($server, '127.0.0.1', 8080);
-// socket_listen($server);
-//
-// $clients = [];
-//
-// while (true) {
-//     $read = array_merge([$server], $clients);
-//
-//     // Add STDIN
-//     $stdin = fopen("php://stdin", "r");
-//     $read[] = $stdin;
-//
-//     $write = null;
-//     $except = null;
-//
-//     socket_select($read, $write, $except, null);
-//
-//     foreach ($read as $sock) {
-//
-//         // New connection
-//         if ($sock === $server) {
-//             $client = socket_accept($server);
-//             $clients[] = $client;
-//             echo "Client connected\n";
-//             continue;
-//         }
-//
-//         // Input from terminal
-//         if ($sock === $stdin) {
-//             $line = trim(fgets($stdin));
-//
-//             if (strlen($line) == 7) {
-//                 foreach ($clients as $client) {
-//                     socket_write($client, $line);
-//                 }
-//             }
-//
-//             continue;
-//         }
-//
-//         // Client disconnected?
-//         $buf = '';
-//         $bytes = @socket_recv($sock, $buf, 1024, MSG_DONTWAIT);
-//
-//         if ($bytes === 0) {
-//             $key = array_search($sock, $clients, true);
-//             unset($clients[$key]);
-//             socket_close($sock);
-//             echo "Client disconnected\n";
-//         }
-//     }
-// }
-//
-// die(0);
-//
-// print_r($_SERVER);
-//
-// $a = var_export($_SERVER,true);
-// file_put_contents('/tmp/lumine/a.txt',$a);
-//
-// die(0);
-
 $stdin = socket_create(AF_UNIX,SOCK_DGRAM,0);
 $a = socket_create(AF_INET,SOCK_STREAM,0);
 
