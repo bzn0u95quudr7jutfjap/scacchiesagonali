@@ -375,20 +375,6 @@ var gPezzoAttivo = 0;
       a.send();
     }
 
-    function pollUltimaMossa () {
-      gPollCount = 0;
-      setTimeout(function loop() {
-        httpGet("?a="+gPartita+"U",function (ultimaMossa){
-          gPollCount += 1;
-          const delay = 32 - Math.clz32(gPollCount);
-          if (gColoreGiocatore == ultimaMossa.at(1)) {
-            setTimeout(loop,1000*delay);
-          } else {
-          }
-        });
-      },1000);
-    }
-
     function posByIdx(pos){
       const i = ((pos >> 4) & 0xf);
       const j = (pos & 0xf);
@@ -502,7 +488,6 @@ debugLine(yCst,0,);
               updateMovimenti();
               drawPezzi(gPezziCtx);
               coloraUltimaMossa();
-              // pollUltimaMossa();
             } else {
               console.log("Errore ultima mossa",mossa,mossaSrv);
             }
@@ -786,9 +771,6 @@ c.addEventListener('mousedown', function(e) {
       const cr = cronologia.value;
       const u = cr.length - 7;
       coloraUltimaMossa();
-      if (cr.at(u + 1) == gColoreGiocatore) {
-        pollUltimaMossa();
-      }
     });
 
 var gWs = new WebSocket("http://localhost:8889");
