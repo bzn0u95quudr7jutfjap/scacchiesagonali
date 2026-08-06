@@ -58,7 +58,7 @@ while (true) {
       foreach($sessioni as $k => $sess){
         $send = socket_write($sess,$line);
         if (false === $send) {
-          echo socket_strerror(socket_last_error($socket))."\n";
+          echo socket_strerror(socket_last_error($sess))."\n";
           $eliminiabili[] = $k;
         }
       }
