@@ -5,12 +5,17 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 $api = php_sapi_name();
-if('cli-server' !== $api){
-  // $p = proc_start([],[]);
+
+if('cli' === $api){
   $file = __FILE__;
   $file = escapeshellarg($file);
-  shell_exec("php --server localhost:8888 $file");
-  die();
+  shell_exec("php --server 0.0.0.0:8888 $file");
+  die(0);
+}
+
+if('cli-server' !== $api){
+  echo "errore: php_sapi_name() invalido: $api\n";
+  die(0);
 };
 
 $outdir = __DIR__ . '/.partite/';
