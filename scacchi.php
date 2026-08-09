@@ -31,7 +31,7 @@ $i++; $internalSock = ((1+$i) <= $argc) ? (int)($argv[$i]) : '.stdin.usock';
 
 $netscan =  shell_exec('ip a');
 $netscan .= shell_exec('ifconfig');
-preg_match_all('/(?!255)\d+\.(?!255)\d+\.(?!255)\d+\.(?!255)\d+/',$netscan,$ips);
+preg_match_all('/(?<!\d)(?!255)\d+\.(?!255)\d+\.(?!255)\d+\.(?!255)\d+/',$netscan,$ips);
 $ips = $ips[0];
 $ips = array_unique($ips);
 print_r($ips);
