@@ -33,6 +33,7 @@ $netscan =  shell_exec('ip a');
 $netscan .= shell_exec('ifconfig');
 preg_match_all('/(?!255)\d+\.(?!255)\d+\.(?!255)\d+\.(?!255)\d+/',$netscan,$ips);
 $ips = $ips[0];
+$ips = array_unique($ips);
 print_r($ips);
 echo "seleziona ip esposto: ";
 fscanf(STDIN,"%d",$i);
