@@ -698,19 +698,20 @@ end_of_router_code . <<<'end_of_router_code'
       function drawPezzi(ctx){
         ctx.clearRect(0,0,c.width,c.height);
         const dimensioneTesto = (gLatoEsagonoCos * 2);
-        const gPezziColori = {'B' : ['#dddddd','#222222'], 'N' : ['#222222','#dddddd']};
+        const gPezziColori = ['#222222','#dddddd'];
         const r = dimensioneTesto / 2;
         ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
         ctx.lineWidth   = 2;
         for(pos of Object.keys(gPezzi)){
           const [n,c] = gPezzi[pos];
+          const b = 'B' == c;
           const [x,y] = posByIdx(pos);
           ctx.beginPath();
-          ctx.fillStyle = gPezziColori[c][0];
+          ctx.fillStyle = gPezziColori[ b&1];
           ctx.arc(x + gLatoEsagonoSin, y + gLatoEsagonoCos, gLatoEsagono*0.8, 0, 2 * Math.PI, false);
           ctx.fill();
           ctx.beginPath();
-          ctx.fillStyle = gPezziColori[c][1];
+          ctx.fillStyle = gPezziColori[!b&1];
           ctx.fillText(n, x, y + dimensioneTesto -6);
           ctx.fill();
         }
