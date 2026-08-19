@@ -558,6 +558,7 @@ end_of_router_code . <<<'end_of_router_code'
       }
 
       function coloraBordoEsagono(pos,colore){
+        if ('N' == gColoreGiocatore) { pos = 0xaa - pos; }
         const v = verticiEsagono(pos);
         cCtx.lineWidth = 6;
         cCtx.strokeStyle = colore;
@@ -575,13 +576,12 @@ end_of_router_code . <<<'end_of_router_code'
           return !((5 <= s && s <= 15) && (0 <= i && i <= 10) && (0 <= j && j <= 10));
       }
 
-      function selezionaPezzo(x,y){
+      function selezionaPezzo(p1){
         const cr = cronologia.value;
         const u = cr.length - 7;
         if (cr.at(u + 1) == gColoreGiocatore) {
           return;
         }
-        const p1 = idxByPos(x,y);
         if(cellaFuoriTavola(p1)){
           return;
         }
@@ -637,8 +637,9 @@ end_of_router_code . <<<'end_of_router_code'
 
       function drawCellaEsagonoByIdx(ctx,pos){
         const colori = ['#000000ff','#aaaaaaff','#ffffffff'];
-        const v = verticiEsagono(pos);
         const [i,j] = [(pos & 0xf0) >> 4,pos & 0xf];
+        if ('N' == gColoreGiocatore) { pos = 0xaa - pos; }
+        const v = verticiEsagono(pos);
         const cIdx = (((1 + (-j + i))%3)+3)%3;
         const dimensioneTesto = (10);
   //
@@ -705,6 +706,7 @@ end_of_router_code . <<<'end_of_router_code'
         for(pos of Object.keys(gPezzi)){
           const [n,c] = gPezzi[pos];
           const b = 'B' == c;
+          if ('N' == gColoreGiocatore) { pos = 0xaa - pos; }
           const [x,y] = posByIdx(pos);
           ctx.beginPath();
           ctx.fillStyle = gPezziColori[ b&1];
@@ -862,9 +864,10 @@ end_of_router_code . <<<'end_of_router_code'
       const rect = this.getBoundingClientRect();
       const x = (event.clientX - rect.left) * c.width  / rect.width ;
       const y = (event.clientY - rect.top ) * c.height / rect.height;
-      const pos = idxByPos(x,y);
       coloraUltimaMossa();
-      selezionaPezzo(x,y);
+      var pos = idxByPos(x,y);
+      if ('N' == gColoreGiocatore) { pos = 0xaa - pos; }
+      selezionaPezzo(pos);
   })
 
       // =============================================
