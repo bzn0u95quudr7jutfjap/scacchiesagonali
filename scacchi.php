@@ -636,7 +636,7 @@ end_of_router_code . <<<'end_of_router_code'
       }
 
       function drawCellaEsagonoByIdx(ctx,pos){
-        const colori = ['#000000ff','#888888ff','#ffffffff'];
+        const colori = ['#000000ff','#aaaaaaff','#ffffffff'];
         const v = verticiEsagono(pos);
         const [i,j] = [(pos & 0xf0) >> 4,pos & 0xf];
         const cIdx = (((1 + (-j + i))%3)+3)%3;
@@ -655,7 +655,7 @@ end_of_router_code . <<<'end_of_router_code'
         ctx.beginPath();
         ctx.lineWidth = 1;
         ctx.font = '' + dimensioneTesto + 'px monospace';
-        ctx.strokeStyle = colori[(cIdx+1)%3];
+        ctx.strokeStyle = colori[0 == cIdx ? 2 : 0];
         ctx.fillText  (i + "." + j, v[0].x, v[0].y + dimensioneTesto);
         ctx.strokeText(i + "." + j, v[0].x, v[0].y + dimensioneTesto);
         ctx.fill();
