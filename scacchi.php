@@ -698,28 +698,21 @@ end_of_router_code . <<<'end_of_router_code'
       function drawPezzi(ctx){
         ctx.clearRect(0,0,c.width,c.height);
         const dimensioneTesto = (gLatoEsagonoCos * 2);
+        const gPezziColori = {'B' : ['#dddddd','#222222'], 'N' : ['#222222','#dddddd']};
+        const r = dimensioneTesto / 2;
+        ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
+        ctx.lineWidth   = 2;
         for(pos of Object.keys(gPezzi)){
           const [n,c] = gPezzi[pos];
           const [x,y] = posByIdx(pos);
-          ctx.font = 'bold ' + dimensioneTesto + 'px monospace';
-          if ('B' == c) {
-            // BIANCO
-            ctx.lineWidth   = 2;
-            ctx.fillStyle   = '#dddddd';
-            ctx.strokeStyle = '#222222';
-          } else {
-            // NERO
-            ctx.lineWidth   = 2;
-            ctx.fillStyle   = '#222222';
-            ctx.strokeStyle = '#dddddd';
-          }
           ctx.beginPath();
-          const r = dimensioneTesto / 2;
+          ctx.fillStyle = gPezziColori[c][0];
           ctx.arc(x + gLatoEsagonoSin, y + gLatoEsagonoCos, gLatoEsagono*0.8, 0, 2 * Math.PI, false);
           ctx.fill();
           ctx.beginPath();
-          ctx.strokeText(n, x, y + dimensioneTesto -6);
-          ctx.stroke();
+          ctx.fillStyle = gPezziColori[c][1];
+          ctx.fillText(n, x, y + dimensioneTesto -6);
+          ctx.fill();
         }
       }
 
