@@ -837,8 +837,9 @@ if (2 > gPezziScaccanti.length) {
             for(var k = 1; k <= lim; k++){
               var p1 = p0 + m * k;
               if (cellaFuoriTavola(p1)) { break; }
+              if (p1 in gPezzi && gPezzi[p1].at(1) == gPezzi[p0].at(1)) { break; }
               if (p0 in pezziADifesa && !pezziADifesa[p0].includes(p1)) { continue; }
-              if (1 == pezziScaccanti.length && !pezziScaccanti[0].includes(p1)) { continue; }
+              if (1 == gPezziScaccanti.length && !pezziScaccanti[0].includes(p1)) { continue; }
               if (p1 in gPezzi) {
                 if (gPezzi[p1].at(1) != gPezzi[p0].at(1)) { possibili.push(p1); }
                 break;
