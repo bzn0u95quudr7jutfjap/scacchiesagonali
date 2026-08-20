@@ -6,6 +6,10 @@ error_reporting(E_ALL);
 
 $api = php_sapi_name();
 
+if ('cli-server' == $api) {
+  goto SERVER;
+}
+
 if('cli' !== $api){
   echo "errore: php_sapi_name() invalido: richiesto 'cli': '$api'\n";
   die(0);
@@ -133,12 +137,11 @@ if('0' !== ($line = stream_get_line($websocketProcPipes[1],2,"\n"))){
   die(0);
 }
 echo "websocketProc inizializzato at '0.0.0.0:$portaWebSock' e '$internalSock'\n";
+shell_exec("W='$indirizzoRemoto:$portaWebSock' U='$internalSock' php --server $indirizzoRemoto:$portaBrowser ".escapeshellarg(__FILE__));
+die(0);
 
-$routerCode = <<<end_of_router_code
-<?php
-  \$internalSock = '$internalSock';
-  \$webSocketAddr = '$indirizzoRemoto:$portaWebSock';
-end_of_router_code . <<<'end_of_router_code'
+SERVER:
+['W' => $webSocketAddr, 'U' => $internalSock] = getenv();
   if(!array_key_exists('a',$_GET)){
     $a_partite = '*';
     $a_partite = glob($a_partite);
@@ -907,6 +910,3 @@ var gWs = new WebSocket("http://<?php echo $webSocketAddr; ?>");
 
     } break;
   }
-end_of_router_code;
-file_put_contents('.router.php',$routerCode);
-shell_exec("php --server 0.0.0.0:$portaBrowser .router.php");
