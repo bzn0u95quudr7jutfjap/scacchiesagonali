@@ -453,7 +453,9 @@ SERVER:
   const gLatoEsagonoCos = gLatoEsagono * Math.sqrt(3)/2;
   var gPezzi = {};
   var gMovimenti = {};
+  var gPezziScaccanti = [];
   var gPezzoAttivo = 0;
+  var gIdxRe = 0;
 
       function debugLine(b,a,colore = '#ff0000'){
         cCtx.lineWidth = 1;
@@ -697,6 +699,8 @@ SERVER:
         p1 |= ((cr.charCodeAt(u + 5) - 65) & 0xf);
         coloraBordoEsagono(p0,'#00ff00');
         coloraBordoEsagono(p1,'#00ff00');
+        for(p of gPezziScaccanti) { coloraBordoEsagono(p1,'#ff0000'); }
+        if (0 < gPezziScaccanti.length) {coloraBordoEsagono(gIdxRe,'#ff0000');}
       }
 
       function drawPezzi(ctx){
@@ -727,15 +731,16 @@ SERVER:
         gMovimenti = {};
         gPezziDifesi = [];
         gPezziScaccabili = {};
-        var movimentiNemici = new Set();
+        gPezziScaccanti = [];
+        gIdxRe = 0;
         var pezziScaccanti = [];
+        var movimentiNemici = new Set();
         var pezziADifesa = {};
         var pezziNemici  = [];
         var pedoniNemici = [];
         var pezziAlleati = [];
         var pedoniAlleati = [];
         var pDirezione = 0;
-        var idxRe = 0;
         for(var pos of Object.keys(gPezzi)){
           var pezzo = gPezzi[pos];
           if(pezzo.at(1) != gColoreGiocatore){
@@ -745,7 +750,7 @@ SERVER:
               pezziNemici.push(pos);
             }
           }else if('R' == pezzo.at(0)){
-            idxRe = pos;
+            gIdxRe = pos;
           }else{
             if('P' == pezzo.at(0)){
               pedoniAlleati.push(pos);
@@ -756,6 +761,7 @@ SERVER:
         }
         pDirezione = ('N' == gColoreGiocatore) ? -1 : 1;
         for(var p0 of pedoniNemici) {
+          const psl = pezziScaccanti.length;
           p0 = Number(p0);
           var possibili = [];
           var p1 = 0;
@@ -763,11 +769,13 @@ SERVER:
           possibili.push(p1);
           p1 = p0 +  2 * pDirezione; if (gPosInizialiPedoni[gPezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in gPezzi)) { possibili.push(p1); }
           }
-          p1 = p0 + 16 * pDirezione; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
-          p1 = p0 - 15 * pDirezione; if (p1 == idxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+          p1 = p0 + 16 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+          p1 = p0 - 15 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
           gMovimenti[p0] = possibili;
+          if (psl < pezziScaccanti.length) { gPezziScaccanti.push(p0); }
         }
         for(var p0 of pezziNemici) {
+          const psl = pezziScaccanti.length;
           p0 = Number(p0);
           var [lim,mov] = gMovimentiPezzi[gPezzi[p0].at(0)];
           var possibili = [];
@@ -778,14 +786,14 @@ SERVER:
               var p1 = p0 + m * k;
               if (cellaFuoriTavola(p1)) { break; }
               if (p1 in gPezzi) {
-                if (p1 == idxRe) { pezziScaccanti.push(direzione); break; }
+                if (p1 == gIdxRe) { pezziScaccanti.push(direzione); break; }
                 possibili.push(p1);
                 if (gPezzi[p1].at(1) != gPezzi[p0].at(1)) {
                   for (var k1 = k+1; k1 <= lim; k1++){
                     var p2 = p0 + m * k1;
                     if(cellaFuoriTavola(p2)) { break; }
                     if(p2 in gPezzi) {
-                      if(p2 == idxRe) {
+                      if(p2 == gIdxRe) {
                         pezziADifesa[p1] = direzione;
                       }
                       break;
@@ -801,8 +809,10 @@ SERVER:
             }
           }
           gMovimenti[p0] = possibili;
+          if (psl < pezziScaccanti.length) { gPezziScaccanti.push(p0); }
         }
         pDirezione = ('B' == gColoreGiocatore) ? 1 : -1;
+if (2 > gPezziScaccanti.length) {
         for(var p0 of pedoniAlleati) {
           p0 = Number(p0);
           var possibili = [];
@@ -838,8 +848,9 @@ SERVER:
           }
           gMovimenti[p0] = possibili;
         }
+}
         {
-          var p0 = idxRe;
+          var p0 = gIdxRe;
           p0 = Number(p0);
           var possibili = [];
           var [lim,mov] = gMovimentiPezzi[gPezzi[p0].at(0)];
@@ -885,8 +896,6 @@ SERVER:
         eseguiMosse(txt);
         updateMovimenti();
         drawPezzi(gPezziCtx);
-        const cr = cronologia.value;
-        const u = cr.length - 7;
         coloraUltimaMossa();
       });
 
