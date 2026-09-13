@@ -141,7 +141,7 @@ shell_exec("W='$indirizzoRemoto:$portaWebSock' U='$internalSock' php --server $i
 die(0);
 
 SERVER:
-['W' => $webSocketAddr, 'U' => $internalSock] = getenv();
+['U' => $internalSock] = getenv();
   if(!array_key_exists('a',$_GET)){
     $a_partite = '*';
     $a_partite = glob($a_partite);
@@ -900,7 +900,9 @@ if (2 > gPezziScaccanti.length) {
         coloraUltimaMossa();
       });
 
-var gWs = new WebSocket("http://<?php echo $webSocketAddr; ?>");
+var gRemoteAddr = window.location.origin;
+gRemoteAddr = gRemoteAddr.substr(gRemoteAddr.indexOf("://")+3);
+var gWs = new WebSocket("ws://"+gRemoteAddr);
   gWs.onmessage = function (e) {
     const ultimaMossa = e.data;
     if (6 != ultimaMossa.length) {
