@@ -1183,9 +1183,7 @@ void handleRequest(Socket& s, char * msg){
         fclose(p);
         send_lit(s,"HTTP/1.1 200 OK\nContent-Type: text/plain\n\n");
         send(s,move+2,len,0);
-        int flag = 1;
         for(int i = 0; i < 64; i++){
-          setsockopt(websocks[i], IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
           if(-1 != (int)websocks[i]){
             errno = 0;
             printf("[II] :: echoing move to :: %6s :: %6d ",move+2,(int)websocks[i]);
@@ -1259,6 +1257,8 @@ void handleWebSocket(Socket& s,char * msg, int p){
   char id_partita = msg[2 + strpos(msg,(char*)"/")];
   for (int i = 0; i < 64; i++) {
     if (-1 == websocks[i]) {
+      int flag = 1;
+      setsockopt(websocks[i], IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
       websocks[i] = s.release(-1);
       websocks_idp[i] = id_partita;
       break;
