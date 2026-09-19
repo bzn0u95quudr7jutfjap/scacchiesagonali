@@ -766,6 +766,14 @@ Content-type: text/html
           return !((5 <= s && s <= 15) && (0 <= i && i <= 10) && (0 <= j && j <= 10));
       }
 
+      function aspettaMossa(nuovaMossa){
+          cronologia.value += nuovaMossa + "\n";
+          eseguiMosse(nuovaMossa);
+          updateMovimenti();
+          drawPezzi(gPezziCtx);
+          coloraUltimaMossa();
+      }
+
       function selezionaPezzo(p1){
         const cr = cronologia.value;
         const u = cr.length - 7;
@@ -785,8 +793,7 @@ Content-type: text/html
             mossaBytes[3] = 65 +  (p1 & 0xf);
             const decoder = new TextDecoder('ascii');
             const mossa = gPezzi[p0] + decoder.decode(mossaBytes);;
-            const url = "/M"+gPartita+mossa;
-            httpGet(url, function aggiornaUltimaMossa(mossaSrv) {
+            httpGet("/M"+gPartita+mossa, function aggiornaUltimaMossa(mossaSrv) {
               if (mossaSrv == mossa) {
                 gPezzoAttivo = 0;
                 cronologia.value += mossa;
@@ -795,6 +802,7 @@ Content-type: text/html
                 updateMovimenti();
                 drawPezzi(gPezziCtx);
                 coloraUltimaMossa();
+                httpGet("/W"+gPartita, aspettaMossa);
               } else {
                 console.log("Errore ultima mossa",mossa,mossaSrv);
               }
@@ -1080,31 +1088,13 @@ if (2 > gPezziScaccanti.length) {
       httpGet("/L"+gPartita,function (txt) {
         cronologia.value = txt;
         eseguiMosse(txt);
+	      if(gColoreGiocatore == txt.at(-6)){
+          httpGet("/W"+gPartita, aspettaMossa);
+	      }
         updateMovimenti();
         drawPezzi(gPezziCtx);
         coloraUltimaMossa();
       });
-
-  var gRemoteAddr = window.location.origin;
-  gRemoteAddr = gRemoteAddr.substr(gRemoteAddr.indexOf("://")+3);
-  var gWs = new WebSocket("ws://"+gRemoteAddr);
-  gWs.onopen  = console.log;
-  gWs.onerror = console.log;
-  gWs.onclose = console.log;
-  gWs.onmessage = function (e) {
-    const ultimaMossa = e.data;
-    if (6 != ultimaMossa.length) {
-      alert('errore websocket: '+ultimaMossa);
-      return;
-    }
-    cronologia.value += ultimaMossa;
-    cronologia.value += "\n";
-    eseguiMosse(ultimaMossa);
-    updateMovimenti();
-    drawPezzi(gPezziCtx);
-    coloraUltimaMossa();
-  };
-
       </script>
 )PEJI_GEMU";
 
@@ -1180,17 +1170,24 @@ void handleRequest(Socket& s, char * msg){
         fclose(p);
         p = fopen(name,"rb");
         fseek(p,-7,SEEK_END);
-        char move[9] = "\x81""\x06";
-        int len = fread(move+2,1,6,p);
+	      char reply[] = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\n______";
+        int len = fread(reply+strpos(reply,(char*)"_"),1,6,p);
         fclose(p);
-        send_lit(s,"HTTP/1.1 200 OK\nContent-Type: text/plain\n\n");
-        send(s,move+2,len,0);
         for(int i = 0; i < MAX_CONN; i++){
           if(-1 != (int)websocks[i]){
             errno = 0;
-            printf("[II] :: echoing move to :: %6s :: %6d ",move+2,(int)websocks[i]);
-            len = send(websocks[i],move,8,0);
-            printf(":: ret = %6d :: errno = %6d\n",len, errno);
+            len = send_lit(websocks[i],reply);
+	          Socket die = websocks[i].release(-1);
+          }
+        }
+	      send_lit(s,reply);
+	      Socket die = s.release(-1);
+      } break;
+      case 'W':{
+        for(int i = 0; i < MAX_CONN; i++){
+          if(-1 == (int)websocks[i]){
+            websocks[i] = s.release(-1);
+            break;
           }
         }
       } break;
@@ -1235,36 +1232,6 @@ void base64_encode(uint8_t * a, char * b, int n){
     b[j++] = base64table[(c >> 12) & 0x3f];
     b[j++] = base64table[(c >>  6) & 0x3f];
     b[j++] = base64table[(c >>  0) & 0x3f];
-  }
-}
-
-void handleWebSocket(Socket& s,char * msg, int p){
-  printf("[II] :: WbS\n");
-  SHA1 sha1;
-  auto key = std::string(msg + p + sizeof(secwebsocketkey)-1,24);
-  sha1.update(key);
-  sha1.update(std::string(guid,sizeof(guid)-1));
-  sha1.final();
-  uint8_t sha1accept[20] = {0};
-  for (int i = 0; i < 5; i++) {
-    sha1accept[i * 4 + 0] = (sha1.digest[i] >> 24) & 0xff;
-    sha1accept[i * 4 + 1] = (sha1.digest[i] >> 16) & 0xff;
-    sha1accept[i * 4 + 2] = (sha1.digest[i] >>  8) & 0xff;
-    sha1accept[i * 4 + 3] = (sha1.digest[i] >>  0) & 0xff;
-  }
-  char websockaccept[] = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ____________________________\r\n\r\n";
-  int resp_begin = strpos(websockaccept,(char*)"_");
-  base64_encode(sha1accept,&websockaccept[resp_begin],20);
-  send_lit(s,websockaccept);
-  char id_partita = msg[2 + strpos(msg,(char*)"/")];
-  for (int i = 0; i < MAX_CONN; i++) {
-    if (-1 == websocks[i]) {
-      int flag = 1;
-      setsockopt(websocks[i], IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
-      websocks[i] = s.release(-1);
-      websocks_idp[i] = id_partita;
-      break;
-    }
   }
 }
 
