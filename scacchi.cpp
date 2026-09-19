@@ -346,6 +346,8 @@ inline std::string SHA1::from_file(const std::string &filename)
 #include <stdint.h>
 #include <string.h>
 
+#define MAX_CONN (64)
+
 #define send_lit(s,str) send(s,str,sizeof(str)-1,0);
 
 bool keepAlive = true;
@@ -1106,8 +1108,8 @@ if (2 > gPezziScaccanti.length) {
       </script>
 )PEJI_GEMU";
 
-Socket websocks[64];
-char websocks_idp[64];
+Socket websocks[MAX_CONN];
+char websocks_idp[MAX_CONN];
 
 void handleRequest(Socket& s, char * msg){
   int req = 1 + strpos(msg, (char *)"/");
@@ -1183,7 +1185,7 @@ void handleRequest(Socket& s, char * msg){
         fclose(p);
         send_lit(s,"HTTP/1.1 200 OK\nContent-Type: text/plain\n\n");
         send(s,move+2,len,0);
-        for(int i = 0; i < 64; i++){
+        for(int i = 0; i < MAX_CONN; i++){
           if(-1 != (int)websocks[i]){
             errno = 0;
             printf("[II] :: echoing move to :: %6s :: %6d ",move+2,(int)websocks[i]);
@@ -1255,7 +1257,7 @@ void handleWebSocket(Socket& s,char * msg, int p){
   base64_encode(sha1accept,&websockaccept[resp_begin],20);
   send_lit(s,websockaccept);
   char id_partita = msg[2 + strpos(msg,(char*)"/")];
-  for (int i = 0; i < 64; i++) {
+  for (int i = 0; i < MAX_CONN; i++) {
     if (-1 == websocks[i]) {
       int flag = 1;
       setsockopt(websocks[i], IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
@@ -1290,18 +1292,13 @@ int main(int argc, char * argv[]){
     sleep(6);
   }
   printf("[II] :: binded successfully on port %6d\n",port);
-  listen(s, 64);
+  listen(s, MAX_CONN);
   char msg[1 << 16] = {0};
   int msglen = 0;
   while (keepAlive) {
     Socket b = accept(s,0,0);
     msglen = recv(b,msg,sizeof(msg),0);
-    int p = strpos(msg,(char*)secwebsocketkey);
-    if (-1 < p && p < msglen) {
-      handleWebSocket(b,msg,p);
-    } else {
-      handleRequest(b,msg);
-    }
+    handleRequest(b,msg);
   }
   return 0;
 }
