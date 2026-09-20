@@ -2,11 +2,10 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include <csignal>
+#include <signal.h>
 #include <dirent.h>
-#include <filesystem>
 #include <stdint.h>
-#include <string.h>
+#include <filesystem>
 
 #define MAX_CONN (64)
 
@@ -26,7 +25,6 @@ struct Socket {
   Socket(const int& a) : fd(a) {}
   int& operator =(const int& a) { return fd = a; }
   operator int&() { return fd; }
-  int release() { int a = fd; fd = -1; return a; }
 
   ~Socket() {
     if (-1 != fd) {
@@ -852,7 +850,7 @@ void handleRequest(Socket& s, char * msg){
         for(int i = 0; i < MAX_CONN; i++){
           Socket& w = websocks[i];
           if(-1 == (int)w){
-            w = s.release();
+            w = s; s = -1;
             websocks_p[i] = msg[req+1];
             break;
           }
@@ -870,13 +868,13 @@ void handleRequest(Socket& s, char * msg){
 Socket RequestHandler;
 void closeSocket(int sig){
   keepAlive = false;
-  Socket s = RequestHandler.release();
+  socket_close(RequestHandler);
 }
 int main(int argc, char * argv[]){
   int port = atoi(argv[1]);
   std::filesystem::current_path("./.partite");
-  std::signal(SIGINT, closeSocket);
-  // std::signal(SIGTERM, closeSocket);
+  signal(SIGINT, closeSocket);
+  signal(SIGTERM, closeSocket);
   Socket& s = RequestHandler;
   s = socket(AF_INET,SOCK_STREAM, 0);
   struct sockaddr_in addr = {
