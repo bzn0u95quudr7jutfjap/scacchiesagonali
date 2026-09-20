@@ -14,6 +14,11 @@
 
 bool keepAlive = true;
 
+void socket_close(int& fd){
+  shutdown(fd,SHUT_RDWR);
+  fd = -1;
+}
+
 struct Socket {
   int fd;
 
@@ -21,17 +26,19 @@ struct Socket {
   Socket(const int& a) : fd(a) {}
   int& operator =(const int& a) { return fd = a; }
   operator int&() { return fd; }
-  int release(const int& b) { int a = fd; fd = b; return a; }
+  int release() { int a = fd; fd = -1; return a; }
 
   ~Socket() {
     if (-1 != fd) {
       printf("[II] :: shutting down socket (%6d)\n", fd);
-      shutdown(fd,SHUT_RDWR);
-      fd = -1;
+      socket_close(fd);
     }
   }
 
 };
+
+Socket websocks[MAX_CONN];
+char websocks_p[MAX_CONN];
 
 int strpos(char * a, char * b){
   int i = 0;
@@ -760,9 +767,6 @@ if (2 > gPezziScaccanti.length) {
       </script>
 )PEJI_GEMU";
 
-Socket websocks[MAX_CONN];
-char websocks_idp[MAX_CONN];
-
 void handleRequest(Socket& s, char * msg){
   int req = 1 + strpos(msg, (char *)"/");
   int size = strpos(&msg[req],(char *)" ");
@@ -836,19 +840,20 @@ void handleRequest(Socket& s, char * msg){
         int len = fread(reply+strpos(reply,(char*)"_"),1,6,p);
         fclose(p);
         for(int i = 0; i < MAX_CONN; i++){
-          if(-1 != (int)websocks[i]){
-            errno = 0;
-            len = send_lit(websocks[i],reply);
-	          Socket die = websocks[i].release(-1);
+          Socket& w = websocks[i];
+          if(-1 != (int)w && name[0] == websocks_p[i]){
+            len = send_lit(w,reply);
+            socket_close(w);
           }
         }
 	      send_lit(s,reply);
-	      Socket die = s.release(-1);
       } break;
       case 'W':{
         for(int i = 0; i < MAX_CONN; i++){
-          if(-1 == (int)websocks[i]){
-            websocks[i] = s.release(-1);
+          Socket& w = websocks[i];
+          if(-1 == (int)w){
+            w = s.release();
+            websocks_p[i] = msg[req+1];
             break;
           }
         }
@@ -865,7 +870,7 @@ void handleRequest(Socket& s, char * msg){
 Socket RequestHandler;
 void closeSocket(int sig){
   keepAlive = false;
-  Socket s = RequestHandler.release(-1);
+  Socket s = RequestHandler.release();
 }
 int main(int argc, char * argv[]){
   int port = atoi(argv[1]);
