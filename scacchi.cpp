@@ -1,3 +1,7 @@
+#if 0
+g++ "$0" -o ./a.out && ./a.out 8888
+exit
+#endif
 #include <stdio.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
