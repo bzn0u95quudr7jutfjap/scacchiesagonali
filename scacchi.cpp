@@ -604,37 +604,32 @@ Content-type: text/html
         var pedoniNemici = [];
         var pezziAlleati = [];
         var pedoniAlleati = [];
-        var pDirezione = 0;
+        var pDirezione = ('N' == gColoreGiocatore) ? -1 : 1;
         for(var pos of Object.keys(gPezzi)){
-          var pezzo = gPezzi[pos];
-          if(pezzo.at(1) != gColoreGiocatore){
-            if ('P' == pezzo.at(0)) {
+          var [n,c] = gPezzi[pos];
+          if(c != gColoreGiocatore){
+            if ('P' == n) {
               pedoniNemici.push(pos);
             } else {
               pezziNemici.push(pos);
             }
-          }else if('R' == pezzo.at(0)){
+          }else if('R' == n){
             gIdxRe = pos;
           }else{
-            if('P' == pezzo.at(0)){
+            if('P' == n){
               pedoniAlleati.push(pos);
             } else {
               pezziAlleati.push(pos);
             }
           }
         }
-        pDirezione = ('N' == gColoreGiocatore) ? -1 : 1;
         for(var p0 of pedoniNemici) {
           const psl = pezziScaccanti.length;
           p0 = Number(p0);
           var possibili = [];
           var p1 = 0;
-          p1 = p0 +  1 * pDirezione; if (!cellaFuoriTavola(p1) && !(p1 in gPezzi)) {
-          possibili.push(p1);
-          p1 = p0 +  2 * pDirezione; if (gPosInizialiPedoni[gPezzi[p0].at(1)].has(p0) && !cellaFuoriTavola(p1) && !(p1 in gPezzi)) { possibili.push(p1); }
-          }
-          p1 = p0 + 16 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
-          p1 = p0 - 15 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { possibili.push(p1); movimentiNemici.add(p1); }
+          p1 = p0 + 16 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { movimentiNemici.add(p1); }
+          p1 = p0 - 15 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { movimentiNemici.add(p1); }
           gMovimenti[p0] = possibili;
           if (psl < pezziScaccanti.length) { gPezziScaccanti.push(p0); }
         }
