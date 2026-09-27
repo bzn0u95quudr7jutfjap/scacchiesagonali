@@ -604,6 +604,7 @@ Content-type: text/html
         var pedoniNemici = [];
         var pezziAlleati = [];
         var pedoniAlleati = [];
+        const pedoniMovMangiabili = [+16, -15];
         var pDirezione = ('N' == gColoreGiocatore) ? -1 : 1;
         for(var pos of Object.keys(gPezzi)){
           var [n,c] = gPezzi[pos];
@@ -626,11 +627,11 @@ Content-type: text/html
         for(var p0 of pedoniNemici) {
           const psl = pezziScaccanti.length;
           p0 = Number(p0);
-          var possibili = [];
-          var p1 = 0;
-          p1 = p0 + 16 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { movimentiNemici.add(p1); }
-          p1 = p0 - 15 * pDirezione; if (p1 == gIdxRe) { pezziScaccanti.push([p1]); } if (!cellaFuoriTavola(p1)) { movimentiNemici.add(p1); }
-          gMovimenti[p0] = possibili;
+          for (const k of pedoniMovMangiabili) {
+            var p1 = p0 + k * pDirezione;
+            if (p1 == gIdxRe) { pezziScaccanti.push([p1]); }
+            if (!cellaFuoriTavola(p1)) { movimentiNemici.add(p1); }
+          }
           if (psl < pezziScaccanti.length) { gPezziScaccanti.push(p0); }
         }
         for(var p0 of pezziNemici) {
@@ -644,47 +645,42 @@ Content-type: text/html
             for(var k = 1; k <= lim; k++){
               var p1 = p0 + m * k;
               if (cellaFuoriTavola(p1)) { break; }
-              if (p1 in gPezzi) {
-                if (p1 == gIdxRe) { pezziScaccanti.push(direzione); break; }
-                possibili.push(p1);
-                if (gPezzi[p1].at(1) != gPezzi[p0].at(1)) {
-                  for (var k1 = k+1; k1 <= lim; k1++){
-                    var p2 = p0 + m * k1;
-                    if(cellaFuoriTavola(p2)) { break; }
-                    if(p2 in gPezzi) {
-                      if(p2 == gIdxRe) {
-                        pezziADifesa[p1] = direzione;
-                      }
-                      break;
-                    }
-                    direzione.push(p2);
-                  }
-                }
-                break;
-              }
+              if (p1 == gIdxRe) { pezziScaccanti.push(direzione); break; }
               movimentiNemici.add(p1);
-              possibili.push(p1);
               direzione.push(p1);
+              if (!(p1 in gPezzi)) { continue; }
+              if (gPezzi[p1].at(1) == gPezzi[p0].at(1)) { break; }
+              for (var k1 = k+1; k1 <= lim; k1++){
+                var p2 = p0 + m * k1;
+                if(cellaFuoriTavola(p2)) { break; }
+                if (p2 == gIdxRe) { pezziADifesa[p1] = direzione; break; }
+                movimentiNemici.add(p1);
+                direzione.push(p2);
+              }
+              break;
             }
           }
-          gMovimenti[p0] = possibili;
           if (psl < pezziScaccanti.length) { gPezziScaccanti.push(p0); }
         }
-        pDirezione = ('B' == gColoreGiocatore) ? 1 : -1;
 if (2 > gPezziScaccanti.length) {
+        pDirezione *= -1;
         for(var p0 of pedoniAlleati) {
           p0 = Number(p0);
           var possibili = [];
-          var p1 = 0;
-          const c = gPezzi[p0].at(1);
-          p1 = p0 -  1 * pDirezione; if (!cellaFuoriTavola(p1) && !(p1 in gPezzi)) {
-          possibili.push(p1);
-          p1 = p0 -  2 * pDirezione; if (gPosInizialiPedoni[c].has(p0) && !cellaFuoriTavola(p1) && !(p1 in gPezzi)) { possibili.push(p1); }
+          var lim = 1 + gPosInizialiPedoni[c].has(p0);
+          for (var k = 1; k <= lim; k++) {
+            const p1 = p0 + k * pDirezione;
+            if (cellaFuoriTavola(p1) || p1 in gPezzi) { continue; }
+            possibili.push(p1);
           }
-          p1 = p0 + 15 * pDirezione; if (p1 in gPezzi && c != gPezzi[p1].at(1)) { possibili.push(p1); }
-          p1 = p0 - 16 * pDirezione; if (p1 in gPezzi && c != gPezzi[p1].at(1)) { possibili.push(p1); }
-          if (p0 in pezziADifesa) { possibili = possibili.filter(p1 => pezziADifesa[p0].includes(p1)); }
-          if (1 == pezziScaccanti.length) { possibili = possibili.filter(p1 => pezziScaccanti[0].includes(p1)); }
+          for (const k of pedoniMovMangiabili) {
+            const p1 = p0 + k * pDirezione;
+            if (!(p1 in gPezzi)) { continue; }
+            if (c == gPezzi[p1].at(1)) { continue; }
+            if (!(p0 in pezziADifesa && pezziADifesa[p0].includes(p1))) { continue; }
+            if (!(pezziScaccanti.length && pezziScaccanti[0].includes(p1))) { continue; }
+            possibili.push(p1);
+          }
           gMovimenti[p0] = possibili;
         }
         for(var p0 of pezziAlleati){
@@ -696,13 +692,10 @@ if (2 > gPezziScaccanti.length) {
             for(var k = 1; k <= lim; k++){
               var p1 = p0 + m * k;
               if (cellaFuoriTavola(p1)) { break; }
-              if (p1 in gPezzi && gPezzi[p1].at(1) == gPezzi[p0].at(1)) { break; }
               if (p0 in pezziADifesa && !pezziADifesa[p0].includes(p1)) { continue; }
-              if (1 == gPezziScaccanti.length && !pezziScaccanti[0].includes(p1)) { continue; }
-              if (p1 in gPezzi) {
-                if (gPezzi[p1].at(1) != gPezzi[p0].at(1)) { possibili.push(p1); }
-                break;
-              }
+              if (gPezziScaccanti.length && !pezziScaccanti[0].includes(p1)) { continue; }
+              if (!(p1 in gPezzi)) { possibili.push(p1); continue; }
+              if (gPezzi[p1].at(1) == gPezzi[p0].at(1)) { break; }
               possibili.push(p1);
             }
           }
@@ -719,10 +712,7 @@ if (2 > gPezziScaccanti.length) {
               var p1 = p0 + m * k;
               if (cellaFuoriTavola(p1)) { break; }
               if (movimentiNemici.has(p1)) { break; }
-              if (p1 in gPezzi) {
-                if (gPezzi[p1].at(1) != gPezzi[p0].at(1)) { possibili.push(p1); }
-                break;
-              }
+              if (p1 in gPezzi && gPezzi[p1].at(1) == gPezzi[p0].at(1)) { break; }
               possibili.push(p1);
             }
           }
